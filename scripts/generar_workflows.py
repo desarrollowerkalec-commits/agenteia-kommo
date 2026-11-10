@@ -211,6 +211,8 @@ def wf_chat(prompt, ids):
 
     add(nodo("Config ITVM", "n8n-nodes-base.set", 3.4, (220, 300), asignaciones([
         ("kommo_base_url", "https://dwcorporativoitvm.kommo.com", "string"),
+        ("tag_activar", "CONTESTA IA", "string"),
+        ("tag_apagar", "NO IA", "string"),
         ("tag_derivado", "ITVM-derivado", "string"),
         ("nombre_etapa_derivado", "LISTO PARA ASESOR (IA)", "string"),
         ("campo_respuesta_lead_id", 3929118, "number"),
@@ -259,9 +261,13 @@ def wf_chat(prompt, ids):
              http_kommo("GET", "=" + BASE + "/api/v4/leads/{{ " + MSG + ".element_id }}",
                         query=[("with", "contacts")])))
 
+    # El bot contesta SOLO si el lead tiene la etiqueta "CONTESTA IA" y NO tiene "NO IA" ni la de derivado.
+    TIENE = ("(($json._embedded && $json._embedded.tags) || []).some(t => "
+             "String(t.name || '').trim().toLowerCase() === String(" + CFG + ".%s || '').trim().toLowerCase())")
     add(nodo("Filter Bot Activo", "n8n-nodes-base.filter", 2.2, (1760, 300), filtro([
-        cond_bool("t1", "={{ !((($json._embedded && $json._embedded.tags) || []).some(t => "
-                        "String(t.name || '').toLowerCase() === String(" + CFG + ".tag_derivado).toLowerCase())) }}"),
+        cond_bool("t1", "={{ " + (TIENE % "tag_activar") + " }}"),
+        cond_bool("t2", "={{ !" + (TIENE % "tag_apagar") + " }}"),
+        cond_bool("t3", "={{ !" + (TIENE % "tag_derivado") + " }}"),
     ], loose=False)))
 
     add(nodo("Switch /reset", "n8n-nodes-base.switch", 3.2, (1980, 300), {

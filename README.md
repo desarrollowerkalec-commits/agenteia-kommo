@@ -18,7 +18,7 @@ Se leen **una vez por día a las 6:00 a.m.** (Costa Rica). Lo que se cambie hoy 
 
 ```
 Kommo ──► ITVM - Chat
-            Filtros · idempotencia · etiqueta "ITVM-derivado" = bot apagado · /reset
+            Filtros · idempotencia · solo leads con "CONTESTA IA" (sin "NO IA" ni "ITVM-derivado") · /reset
             Audio → texto · espera de 8 s para juntar mensajes
             Agente (gpt-5.4-mini + memoria)
               ├─ reglas fijas            prompts/agente-itvm.md
@@ -65,7 +65,9 @@ Cuenta `dwcorporativoitvm.kommo.com`. Estos valores están en el nodo **Config I
 | Campo del lead para el resumen | Resumen IA, `3929120` |
 | Salesbot | `212896`. Su "Enviar mensaje" debe tener `{{lead.cf.3929118}}` |
 | Etapa de derivación | "LISTO PARA ASESOR (IA)", creada en los embudos PRINCIPAL, MAURICIO, IVAN y GABRIELA. Se busca por nombre en el embudo del lead. |
-| Etiqueta de derivado | `ITVM-derivado`. Para que el bot vuelva a atender un lead, se le quita la etiqueta. |
+| **Cuándo contesta el bot** | Solo si el lead tiene la etiqueta **`CONTESTA IA`** y **no** tiene **`NO IA`** ni `ITVM-derivado`. Sin `CONTESTA IA` el bot no responde nada. |
+| Apagar el bot en un lead | Ponerle la etiqueta `NO IA`. |
+| Etiqueta de derivado | `ITVM-derivado` (la pone el bot al pasar con un asesor). Para que vuelva a atender, se le quita. |
 
 ## Reglas de la planilla y el documento
 

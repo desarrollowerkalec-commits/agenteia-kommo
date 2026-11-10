@@ -12,7 +12,7 @@
           ]
         }
       },
-      "id": "98ecc585-3e1e-5863-9138-cd5b59eb33d2",
+      "id": "ac078d58-c464-5ad0-973b-9f1e0360dbb5",
       "name": "Todos los dias 6am",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -23,7 +23,7 @@
     },
     {
       "parameters": {},
-      "id": "e14be92d-0c94-5d9b-a989-618ac688d909",
+      "id": "f4663b40-a60f-5010-8cdb-51ecb1c3d893",
       "name": "Ejecutar ahora",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -38,7 +38,7 @@
         "query": "-- ITVM - Agente IA Kommo\n-- Esquema de base de datos (PostgreSQL). Idempotente: se puede correr varias veces.\n-- Las tablas llevan prefijo itvm_ para poder convivir con otros bots en la misma base.\n\nCREATE SCHEMA IF NOT EXISTS crm;\n\n-- 1) Idempotencia: Kommo puede reenviar el mismo webhook. Cada message_id se procesa una sola vez.\nCREATE TABLE IF NOT EXISTS crm.itvm_processed_messages (\n  message_id  text PRIMARY KEY,\n  chat_id     text,\n  creado_en   timestamptz NOT NULL DEFAULT now()\n);\n\n-- 2) Buffer de mensajes (debounce). Reemplaza a Redis.\n--    Cada mensaje entrante se inserta aca; despues de la espera, SOLO la ejecucion\n--    del ultimo mensaje del chat \"reclama\" (UPDATE ... RETURNING) todos los pendientes\n--    en una sola sentencia atomica. Asi no se pierden mensajes que llegan en el medio.\nCREATE TABLE IF NOT EXISTS crm.itvm_buffer (\n  id          bigserial PRIMARY KEY,\n  message_id  text NOT NULL UNIQUE,\n  chat_id     text NOT NULL,\n  content     text NOT NULL,\n  procesado   boolean NOT NULL DEFAULT false,\n  creado_en   timestamptz NOT NULL DEFAULT now()\n);\nCREATE INDEX IF NOT EXISTS itvm_buffer_pendientes_idx\n  ON crm.itvm_buffer (chat_id, id) WHERE NOT procesado;\n\n-- 3) Informacion editable por el equipo de ITVM.\n--    notas_adicionales: planilla (precios, horarios, promos, FAQ). instrucciones: Google Doc.\n--    Las llena el workflow \"ITVM - Sync Planilla\".\nCREATE TABLE IF NOT EXISTS crm.itvm_bot_config (\n  id                 int PRIMARY KEY,\n  notas_adicionales  text,\n  actualizado_en     timestamptz\n);\n-- Instrucciones del negocio (nombre, tono, que hacer, info extra): vienen del Google Doc de ITVM.\nALTER TABLE crm.itvm_bot_config ADD COLUMN IF NOT EXISTS instrucciones text;\nALTER TABLE crm.itvm_bot_config ADD COLUMN IF NOT EXISTS instrucciones_actualizado_en timestamptz;\nINSERT INTO crm.itvm_bot_config (id, notas_adicionales, actualizado_en)\nVALUES (1, NULL, NULL)\nON CONFLICT (id) DO NOTHING;\n\n-- 4) Oferta academica (carreras tecnicas y cursos libres).\nCREATE TABLE IF NOT EXISTS crm.itvm_programas (\n  id                serial PRIMARY KEY,\n  slug              text NOT NULL UNIQUE,\n  nombre            text NOT NULL,\n  tipo              text NOT NULL CHECK (tipo IN ('tecnico', 'curso_libre', 'capacitacion')),\n  acreditacion      text,           -- ej: 'Acreditada por el INA (resolucion 2026-02)'\n  modalidad         text,\n  duracion          text,\n  horario           text,           -- NULL = consultar con asesor\n  requisitos        text,\n  dirigido_a        text,\n  contenido         text,\n  inversion         text,           -- NULL = el precio lo confirma el asesor / Google Doc\n  notas             text,           -- detalles extra que el agente puede usar\n  url_info          text,\n  url_folleto       text,\n  palabras_clave    text,           -- sinonimos para la busqueda (sin tildes, minusculas)\n  orden             int NOT NULL DEFAULT 100,\n  activo            boolean NOT NULL DEFAULT true,\n  actualizado_en    timestamptz NOT NULL DEFAULT now()\n);\n\n-- La memoria del agente (tabla public.itvm_chat_histories) la crea n8n automaticamente\n-- la primera vez que corre el nodo \"Postgres Chat Memory\".\n\n\n-- ITVM - Oferta academica\n-- Fuente: https://itvm.cr y folletos PDF publicados en el sitio (relevado 10/11/2026).\n-- Re-ejecutable: actualiza los registros existentes por slug.\n-- Los nombres deben coincidir EXACTO con la columna \"Nombre del programa\" de la planilla:\n-- el workflow \"ITVM - Sync Planilla\" empareja por nombre.\n--\n-- IMPORTANTE: los precios NO se cargan aca (los folletos publicos estan desactualizados\n-- o no los traen). Los precios, fechas de inicio y horarios vigentes se cargan en el\n-- Google Doc que sincroniza \"ITVM - Sync Documento\".\n\nINSERT INTO crm.itvm_programas\n  (slug, nombre, tipo, acreditacion, modalidad, duracion, horario, requisitos, dirigido_a, contenido, inversion, notas, url_info, url_folleto, palabras_clave, orden)\nVALUES\n-- ===================== CARRERAS TECNICAS =====================\n('mecanica-vehiculos-livianos',\n 'Técnico en Mecánica de Vehículos Livianos', 'tecnico',\n 'Acreditada por el INA (resolución 2026-02). Los estudiantes nacionales aplican para titulación INA; quienes solo tienen pasaporte cursan el programa sin acreditación.',\n 'Presencial',\n '6 cuatrimestres en horario diurno o nocturno; 8 cuatrimestres en horario de sábados',\n 'Diurno, nocturno o sábados (días y horas exactas: consultar)',\n 'Ser mayor de 15 años. Fotocopia del título de educación primaria (sexto grado). Fotocopia de cédula de identidad o documento de identificación de menor (el menor se presenta con padre, madre o encargado), DIMEX u otra identificación al día.',\n 'Personas que quieren formarse como técnicos en mecánica automotriz.',\n 'Fundamentos de mecánica; electricidad y electrónica; frenos; suspensión; dirección; transmisión I y II; mecánica interna y laboratorio; circuitos eléctricos; manejo de residuos en talleres; redes de comunicación multiplexadas; encendido electrónico; inyección a gasolina; inyección diésel I y II; electrónica digital; introducción a vehículos híbridos y eléctricos; propulsión de alta tensión; conversión de vehículos de combustión a eléctricos; práctica didáctica supervisada.',\n NULL,\n 'Metodología por competencias (aprender haciendo). 5 talleres equipados: frenos/suspensión/dirección (elevador, prensa hidráulica, torno de rotores), afinamiento (motores gasolina y diésel funcionando, maquetas common rail), mecánica interna y transmisión, electricidad y electrónica, y soldadura. Práctica supervisada con empresas aliadas.',\n 'https://itvm.cr/mecanica-de-vehiculos-livianos/',\n 'https://itvm.cr/wp-content/uploads/2026/05/Folleto-Mecanica-de-Vehiculos-livianos-3.pdf',\n 'mecanica automotriz carro carros auto autos vehiculo vehiculos livianos mecanico taller ina acreditada hibridos electricos',\n 10),\n\n('mecanica-motocicletas',\n 'Técnico en Mecánica de Motocicletas (intensivo)', 'tecnico',\n NULL,\n 'Presencial',\n '8 meses (modalidad intensiva)',\n NULL,\n 'Ser mayor de 18 años. Fotocopia del título de educación primaria (sexto grado). Cédula de identidad, de residencia, pasaporte, DIMEX o carné de refugio vigente.',\n 'Personas que quieren trabajar en diagnóstico, reparación y mantenimiento de motocicletas.',\n 'Mecánica de motocicletas (motores, transmisiones manuales, automáticas y semiautomáticas, frenos, suspensión y dirección); electricidad y electrónica; seguridad vial; mantenimiento preventivo; tecnología de motores (2 y 4 tiempos, inyección y carburación); dinámica de motocicletas; diagnóstico y reparación de averías.',\n NULL,\n 'Pasantías opcionales. El mercado de motocicletas creció mucho en el país en los últimos años.',\n 'https://itvm.cr/mecanica-de-motocicletas/',\n 'https://itvm.cr/wp-content/uploads/2025/09/Folleto-Mecanica-de-Motocicletas-Intensivo-2.pdf',\n 'moto motos motocicleta motocicletas cuadraciclo cuadraciclos mecanica de motos intensivo',\n 20),\n\n('peritaje-automotriz',\n 'Técnico en Peritaje Automotriz', 'tecnico',\n 'ITVM es la única institución que ofrece Peritaje Automotriz en grado técnico, alineado al Marco Nacional de Cualificaciones.',\n 'Híbrida: presencial + virtual',\n '10 meses + pasantía',\n NULL,\n 'Noveno año aprobado. Ser mayor de 17 años. Cédula nacional, de residencia, pasaporte, DIMEX o carné de refugio vigente.',\n 'Personas interesadas en análisis y evaluación de vehículos: investigación de accidentes, inspecciones de calidad, valoraciones para aseguradoras.',\n 'Introducción a la carrocería; enderezado; mecánica aplicada al peritaje; servicio al cliente; seguros de automóviles; inglés técnico para peritaje; pintura y control de calidad; técnica pericial; valoración de siniestros I y II; práctica supervisada.',\n NULL,\n NULL,\n 'https://itvm.cr/peritaje-automotriz/',\n 'https://itvm.cr/wp-content/uploads/2025/09/Folleto-Peritaje-Automotriz-2.pdf',\n 'peritaje perito peritos aseguradora seguros siniestros avaluo valoracion accidentes carroceria',\n 30),\n\n('electromecanica',\n 'Técnico en Electromecánica', 'tecnico',\n NULL,\n 'Presencial + virtual',\n '12 meses',\n 'Nocturno (disponibilidad de 9 horas semanales)',\n 'Ser mayor de 18 años. Bachiller en educación media. Presentar cédula. Disponibilidad de 9 horas semanales. Acceso a internet.',\n 'Personas que quieren trabajar en mantenimiento e instalación de maquinaria y equipos industriales.',\n 'Módulo general: matemática aplicada, mantenimiento, seguridad industrial. Módulo mecánico: mecánica general, dibujo técnico, interpretación de planos, sistema de unidades, equipos de medición, herramientas básicas, soldadura, trazo/corte/pulido, taladrado, galgas y roscas, ajuste y tolerancia. Módulo eléctrico: electricidad general, electrónica industrial, planos eléctricos y de control, máquinas eléctricas. Eje transversal: habilidades para el trabajo.',\n NULL,\n 'Pasantías opcionales.',\n 'https://itvm.cr/electromecanica/',\n 'https://itvm.cr/wp-content/uploads/2025/09/Folleto-Electromecanica-2.pdf',\n 'electromecanica electromecanico industrial mantenimiento industrial maquinaria soldadura planos',\n 40),\n\n('autotronica',\n 'Técnico en Autotrónica', 'tecnico',\n NULL,\n 'Presencial',\n '288 horas / 8 meses (3 días por semana, 3 horas diarias)',\n NULL,\n 'Conocimientos básicos de mecánica. Documento de identidad vigente. Noveno año aprobado.',\n 'Personas que quieren una base sólida en electricidad y electrónica aplicada a sistemas automotrices.',\n 'Módulo I: seguridad, fundamentos de electricidad y electrónica, componentes y circuitos. Módulo II: sensores y actuadores, gestión del motor, inyección electrónica (EFI, Common Rail), encendido electrónico, control de emisiones. Módulo III: redes CAN bus, LIN bus, FlexRay, diagnóstico de redes, multímetro, osciloscopio y escáner. Módulo IV: confort y seguridad electrónica (audio, navegación, iluminación, airbags, ABS, control de tracción).',\n NULL,\n NULL,\n 'https://itvm.cr/autotronica/',\n 'https://itvm.cr/wp-content/uploads/2025/09/Folleto-Autotronica-3.pdf',\n 'autotronica electronica automotriz electrico automotriz escaner diagnostico computadora carro sensores can bus',\n 50),\n\n('semiconductores',\n 'Técnico en Semiconductores', 'tecnico',\n NULL,\n 'Bimodal: virtual por Teams + presencial en el instituto',\n '3 cuatrimestres',\n NULL,\n NULL,\n 'Personas interesadas en electrónica y en la industria de semiconductores.',\n 'Módulo 1: introducción a la electrónica, circuitos básicos, electrónica analógica I, electrónica digital I. Módulo 2: electrónica analógica II, electrónica digital II (microcontroladores, Arduino), electrónica de potencia, diseño electrónico (PCB). Módulo 3: manufactura de semiconductores, dispositivos semiconductores, aplicaciones industriales (renovables, médica, 5G/IoT, aeroespacial), tendencias de la industria.',\n NULL,\n NULL,\n 'https://itvm.cr/semiconductores/',\n 'https://itvm.cr/wp-content/uploads/2026/03/Folleto-Semiconductores-2.pdf',\n 'semiconductores semiconductor chips electronica microcontroladores arduino pcb manufactura',\n 60),\n\n-- ===================== CURSOS LIBRES =====================\n('inyeccion-motos',\n 'Inyección electrónica para motocicletas', 'curso_libre',\n NULL,\n 'Presencial',\n '216 horas / 6 meses',\n NULL,\n 'Título de mecánica o al menos un año de experiencia. Sexto grado aprobado. Documento de identidad vigente.',\n 'Técnicos o mecánicos con experiencia en reparación de motocicletas que quieren especializarse en inyección electrónica.',\n 'Comunicación binaria; motor en V y lineal; circuitos eléctricos; leyes de Kirchhoff y Ohm; componentes pasivos y activos; transistores; señales digitales y análogas; compuertas lógicas; diagramas eléctricos; circuitos integrados; sensores y actuadores; uso de escáner.',\n NULL,\n NULL,\n 'https://itvm.cr/cursos-libres/',\n 'https://itvm.cr/wp-content/uploads/2025/09/Folleto-Inyeccion-Motos-2.pdf',\n 'inyeccion motos inyeccion electronica motocicleta fuel injection escaner motos',\n 110),\n\n('motores-2-tiempos',\n 'Motores de motocicletas 2 tiempos', 'curso_libre',\n NULL,\n 'Presencial',\n '144 horas / 4 meses',\n NULL,\n 'Título de mecánica o mínimo un año de experiencia. Sexto grado aprobado. Documento de identidad vigente.',\n 'Técnicos o mecánicos de motocicletas que quieren especializarse en motores 2 tiempos.',\n 'Puesta a punto y carburación; válvula de poder YPVS y KIPS; válvula rotativa; alteraciones a motores (cárter, volante, lumbreras); tiempo electrónico; adaptaciones de sistemas de encendido.',\n NULL,\n NULL,\n 'https://itvm.cr/cursos-libres/',\n 'https://itvm.cr/wp-content/uploads/2025/09/Folleto-Motores-2-tiempos-2.pdf',\n 'dos tiempos 2 tiempos 2t motores 2 tiempos carburacion motos',\n 120),\n\n('electricidad-residencial',\n 'Electricidad residencial', 'curso_libre',\n NULL,\n 'Presencial',\n '288 horas / 8 meses',\n NULL,\n 'Documento de identidad vigente. Noveno año aprobado.',\n 'Personas que quieren aprender instalaciones eléctricas residenciales, interpretación de planos y código eléctrico nacional.',\n 'Seguridad; teoría eléctrica (voltaje, corriente, resistencia, potencia, Ley de Ohm); circuitos serie, paralelo y mixtos; simbología; conductores; multímetro; cálculos de voltaje, corriente, potencia, conductores, acometidas y caídas de tensión; balanceo de cargas; centros de carga y disyuntores; ramales de luminarias y tomacorrientes; apagadores de 3 y 4 vías; planos; gabinetes y normas NEMA; tipos de lámparas y tomacorrientes; mantenimiento predictivo, preventivo y correctivo.',\n NULL,\n NULL,\n 'https://itvm.cr/cursos-libres/',\n 'https://itvm.cr/wp-content/uploads/2024/03/Folleto-Instalaciones-Electricas-2024.pdf',\n 'electricidad electricista residencial instalaciones electricas casa planos electricos',\n 130),\n\n('diesel-common-rail',\n 'Inyección diésel Common Rail (CRDI)', 'curso_libre',\n NULL,\n NULL,\n '48 horas / 8 semanas',\n NULL,\n 'Conocimientos en electricidad y electrónica automotriz. Ser mayor de 17 años. Sexto grado aprobado.',\n 'Mecánicos que quieren especializarse en sistemas diésel de inyección directa.',\n 'Composición de la atmósfera; fundamentos de motores de combustión interna y diésel; inyección convencional (bomba lineal y rotativa); sistema de inyección; sensores y actuadores; alta y baja presión; inyección Bosch, Denso y Lucas; prácticas en taller.',\n NULL,\n NULL,\n 'https://itvm.cr/cursos-libres/',\n 'https://itvm.cr/wp-content/uploads/2025/09/Folleto-Inyeccion-Diesel-Common-Rail-2.pdf',\n 'diesel common rail crdi inyeccion diesel bomba inyectora camiones',\n 140),\n\n('metrologia',\n 'Metrología para la industria médica', 'curso_libre',\n NULL,\n 'Bimodal',\n '216 horas (3 días por semana, 3 horas por día)',\n NULL,\n 'Documento de identidad vigente. Ser mayor de 18 años. Bachillerato aprobado.',\n 'Personas que quieren trabajar en medición, calibración y control de calidad de equipos médicos.',\n 'Fundamentos de metrología; instrumentación médica; calibración y validación de equipos médicos; control de calidad (ISO 9001, ISO 13485, ISO 14644); metrología dimensional y geométrica; metrología óptica; bioinstrumentación; gestión de proyectos y documentación; ética y regulación.',\n NULL,\n NULL,\n 'https://itvm.cr/cursos-libres/',\n 'https://itvm.cr/wp-content/uploads/2025/09/Folleto-Metrologia-1.pdf',\n 'metrologia calibracion medicion dispositivos medicos industria medica zona franca calidad iso',\n 150),\n\n('montacargas',\n 'Manejo y uso de montacargas', 'capacitacion',\n NULL,\n 'Bimodal: teoría virtual por Teams (requiere computadora e internet estable) + práctica presencial en plantel',\n '12 horas',\n 'Última edición publicada: lunes de 5:00 p.m. a 9:00 p.m. (teoría virtual), martes y miércoles de 1:00 p.m. a 5:00 p.m. (práctica presencial). Próximas fechas: consultar.',\n 'Licencia D3. Mínimo 2 años de experiencia en el manejo del equipo.',\n 'Funcionarios de empresas que operan montacargas.',\n 'Seguridad, normativa y fundamentos del equipo (1 h); operación y técnicas de manejo (1 h); mantenimiento y cuidados (2 h); práctica en campo (8 h).',\n NULL,\n 'Ideal para empresas que quieren capacitar a su personal: derivar a un asesor para coordinar grupo y fechas.',\n 'https://itvm.cr/cursos-libres/',\n 'https://itvm.cr/wp-content/uploads/2026/09/Manejo-y-uso-de-montacargas-3.pdf',\n 'montacargas montacarga forklift licencia d3 empresas capacitacion bodega',\n 160)\n\nON CONFLICT (slug) DO NOTHING;\n",
         "options": {}
       },
-      "id": "ac078d58-c464-5ad0-973b-9f1e0360dbb5",
+      "id": "d1b3f13d-91bd-596b-9fd9-98cfb0f7d8af",
       "name": "Preparar Base",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -52,13 +52,13 @@
         "assignments": {
           "assignments": [
             {
-              "id": "f4663b40-a60f-5010-8cdb-51ecb1c3d893",
+              "id": "4f3a0833-4180-5eda-a3bb-5b7589212296",
               "name": "sheet_id",
               "value": "1YZqpfdGdRLp2OH683OvN3NZUjd0D_N27",
               "type": "string"
             },
             {
-              "id": "d1b3f13d-91bd-596b-9fd9-98cfb0f7d8af",
+              "id": "44e967f1-4bbd-57be-8894-382a9acd0b9b",
               "name": "doc_id",
               "value": "190WtOTVfCgF01xcNyE2UA4DO6CYypPOWMYd1aY2Ucpk",
               "type": "string"
@@ -67,7 +67,7 @@
         },
         "options": {}
       },
-      "id": "4f3a0833-4180-5eda-a3bb-5b7589212296",
+      "id": "22385506-166b-513a-976a-df58001318e6",
       "name": "Config Sync",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -80,7 +80,7 @@
       "parameters": {
         "jsCode": "// La planilla de Google Sheets debe estar compartida: 'cualquier persona con el enlace'.\nconst sheet_id = $('Config Sync').first().json.sheet_id;\nreturn [{\"hoja\": \"Datos generales\", \"rango\": \"A4:C60\", \"encabezado\": \"Dato\"}, {\"hoja\": \"Programas\", \"rango\": \"A4:I80\", \"encabezado\": \"Nombre del programa\"}, {\"hoja\": \"Precios\", \"rango\": \"A4:G200\", \"encabezado\": \"Programa\"}, {\"hoja\": \"Horarios e inicios\", \"rango\": \"A4:H200\", \"encabezado\": \"Programa\"}, {\"hoja\": \"Promociones\", \"rango\": \"A4:G80\", \"encabezado\": \"Promoción\"}, {\"hoja\": \"Preguntas frecuentes\", \"rango\": \"A4:B120\", \"encabezado\": \"Pregunta\"}].map(h => ({ json: { ...h, sheet_id } }));"
       },
-      "id": "44e967f1-4bbd-57be-8894-382a9acd0b9b",
+      "id": "176af89d-8343-5255-a362-83dbcc777519",
       "name": "Hojas",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -121,7 +121,7 @@
           }
         }
       },
-      "id": "22385506-166b-513a-976a-df58001318e6",
+      "id": "c310914e-bf01-5b20-adaf-bfbf93341031",
       "name": "Leer Hoja",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -138,7 +138,7 @@
       "parameters": {
         "jsCode": "// Convierte las pestañas de la planilla en:\n//  - notas: texto que lee la tool \"Consultar informacion adicional\"\n//  - programas: filas para actualizar crm.itvm_programas\nconst HOJAS = $('Hojas').all().map(i => i.json);\nconst respuestas = $input.all().map(i => i.json);\n\nfunction parseCSV(texto) {\n  const filas = []; let fila = []; let campo = ''; let comillas = false;\n  for (let i = 0; i < texto.length; i++) {\n    const c = texto[i];\n    if (comillas) {\n      if (c === '\"') { if (texto[i + 1] === '\"') { campo += '\"'; i++; } else comillas = false; }\n      else campo += c;\n    } else if (c === '\"') comillas = true;\n    else if (c === ',') { fila.push(campo); campo = ''; }\n    else if (c === '\\n' || c === '\\r') {\n      if (c === '\\r' && texto[i + 1] === '\\n') i++;\n      fila.push(campo); filas.push(fila); fila = []; campo = '';\n    } else campo += c;\n  }\n  if (campo !== '' || fila.length) { fila.push(campo); filas.push(fila); }\n  return filas;\n}\nconst limpio = v => String(v == null ? '' : v).replace(/\\s+/g, ' ').trim();\nconst esEjemplo = fila => fila.some(v => /^EJEMPLO\\b/i.test(limpio(v)));\n// Filas de ejemplo que vinieron precargadas en la plantilla y no tienen la marca EJEMPLO.\nconst EJEMPLOS_PLANTILLA = new Set(['matrícula gratis enero']);\n\nconst tablas = {}; const errores = [];\nHOJAS.forEach((h, idx) => {\n  const r = respuestas[idx] || {};\n  const data = typeof r.data === 'string' ? r.data : '';\n  const filas = parseCSV(data);\n  if (!filas.length || limpio(filas[0][0]) !== h.encabezado) { errores.push(h.hoja); return; }\n  const enc = filas[0].map(limpio);\n  tablas[h.hoja] = filas.slice(1)\n    .filter(f => f.some(v => limpio(v) !== ''))\n    .map(f => Object.fromEntries(enc.map((k, i) => [k, limpio(f[i])])));\n});\nif (errores.length) {\n  return [{ json: { ok: false, errores, hojas_ok: HOJAS.length - errores.length } }];\n}\n\nconst out = [];\n// --- Datos generales\nconst dg = tablas['Datos generales'].filter(r => r['Dato'] && r['Valor']);\nif (dg.length) {\n  out.push('# DATOS GENERALES DE ITVM');\n  for (const r of dg) out.push(`- ${r['Dato']}: ${r['Valor']}`);\n}\n\n// --- Precios\nconst precios = tablas['Precios'].filter(r => r['Programa'] && r['Monto (₡)'] && !esEjemplo(Object.values(r)) && !/vencid/i.test(r['Estado']));\nout.push('', '# PRECIOS VIGENTES (en colones)');\nif (!precios.length) out.push('No hay precios cargados: el precio lo confirma un asesor.');\nconst porPrograma = {};\nfor (const r of precios) (porPrograma[r['Programa']] = porPrograma[r['Programa']] || []).push(r);\nfor (const [prog, filas] of Object.entries(porPrograma)) {\n  out.push(`## ${prog}`);\n  for (const r of filas) {\n    let monto = r['Monto (₡)']; if (!/₡/.test(monto)) monto = '₡' + monto;\n    out.push(`- ${r['Concepto'] || 'Precio'}: ${monto}` + (r['Detalle'] ? ` (${r['Detalle']})` : '') + (r['Vigente hasta'] ? ` — vigente hasta ${r['Vigente hasta']}` : ''));\n  }\n}\n\n// --- Horarios e inicios\nconst horarios = tablas['Horarios e inicios'].filter(r => r['Programa'] && !esEjemplo(Object.values(r)));\nout.push('', '# HORARIOS Y PRÓXIMOS INICIOS');\nif (!horarios.length) out.push('No hay grupos cargados: horarios y fechas de inicio los confirma un asesor.');\nfor (const r of horarios) {\n  const partes = [r['Jornada'], r['Días'], (r['Hora inicio'] && r['Hora fin']) ? `${r['Hora inicio']} a ${r['Hora fin']}` : (r['Hora inicio'] || '')].filter(Boolean).join(', ');\n  out.push(`- ${r['Programa']}: ${partes || 'horario a confirmar'}`\n    + (r['Fecha de inicio'] ? `. Inicio: ${r['Fecha de inicio']}` : '. Fecha de inicio: a confirmar con asesor')\n    + (r['Cupos'] ? `. Cupos: ${r['Cupos']}` : '')\n    + (r['Notas'] ? `. ${r['Notas']}` : ''));\n}\n\n// --- Promociones\nconst promos = tablas['Promociones'].filter(r => r['Promoción'] && !esEjemplo(Object.values(r))\n  && !EJEMPLOS_PLANTILLA.has(r['Promoción'].toLowerCase()) && !/vencid/i.test(r['Estado']));\nout.push('', '# PROMOCIONES Y BECAS');\nif (!promos.length) out.push('No hay promociones vigentes. No ofrezcas descuentos.');\nfor (const r of promos) {\n  const proxima = /pr[oó]xima/i.test(r['Estado']);\n  out.push(`- ${r['Promoción']}${proxima ? ' (todavía no empezó)' : ''}: ${r['Qué incluye']}`\n    + (r['Aplica a'] ? `. Aplica a: ${r['Aplica a']}` : '')\n    + (r['Desde'] ? `. Desde: ${r['Desde']}` : '') + (r['Hasta'] ? `. Hasta: ${r['Hasta']}` : '')\n    + (r['Condiciones'] ? `. Condiciones: ${r['Condiciones']}` : ''));\n}\n\n// --- Preguntas frecuentes\nconst faq = tablas['Preguntas frecuentes'].filter(r => r['Pregunta'] && r['Respuesta'] && !esEjemplo(Object.values(r)));\nif (faq.length) {\n  out.push('', '# PREGUNTAS FRECUENTES (responder con este contenido)');\n  for (const r of faq) out.push(`- P: ${r['Pregunta']}\\n  R: ${r['Respuesta']}`);\n}\n\n// --- Programas\nconst TIPOS = { 'carrera tecnica': 'tecnico', 'curso libre': 'curso_libre', 'capacitacion': 'capacitacion' };\nconst norm = v => limpio(v).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');\nconst sinMarcas = v => limpio(String(v || '').replace(/\\s*\\(\\s*VERIFICAR\\b[^)]*\\)/gi, '').replace(/^FALTA[^.]*\\.?/i, ''));\nconst programas = tablas['Programas'].filter(r => r['Nombre del programa']).map((r, i) => {\n  const acred = limpio(r['Acreditado INA']);\n  return {\n    nombre: r['Nombre del programa'],\n    slug: norm(r['Nombre del programa']).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),\n    tipo: TIPOS[norm(r['Tipo'])] || 'curso_libre',\n    activo: norm(r['Activo']) !== 'no',\n    acreditacion: (!acred || norm(acred) === 'no') ? null : (/^s[ií](\\s|$)/i.test(acred) ? ('Acreditada por el INA ' + acred.replace(/^s[ií]\\s*/i, '')).trim() : acred),\n    modalidad: sinMarcas(r['Modalidad']) || null,\n    duracion: sinMarcas(r['Duración']) || null,\n    requisitos: sinMarcas(r['Requisitos de ingreso']) || null,\n    notas: sinMarcas(r['Notas para el asistente']) || null,\n    url_folleto: /^https?:\\/\\//.test(r['Link del folleto']) ? r['Link del folleto'] : null,\n    orden: (i + 1) * 10,\n  };\n});\n\nconst notas = out.join('\\n').trim();\nreturn [{ json: { ok: true, hojas_ok: HOJAS.length, notas, largo: notas.length, programas, n_programas: programas.length } }];"
       },
-      "id": "176af89d-8343-5255-a362-83dbcc777519",
+      "id": "6c0317ea-0071-59a6-ab49-f411b090aba0",
       "name": "Procesar Planilla",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -172,7 +172,7 @@
         },
         "options": {}
       },
-      "id": "c310914e-bf01-5b20-adaf-bfbf93341031",
+      "id": "b96fcffb-c570-566d-9d29-5fe1025ebcd9",
       "name": "Filter Planilla OK",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
@@ -189,7 +189,7 @@
           "queryReplacement": "={{ [$json.notas] }}"
         }
       },
-      "id": "6c0317ea-0071-59a6-ab49-f411b090aba0",
+      "id": "4e56c16c-34cb-580f-9ddc-e2ffa2624218",
       "name": "Guardar Info",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -223,7 +223,7 @@
         },
         "options": {}
       },
-      "id": "b96fcffb-c570-566d-9d29-5fe1025ebcd9",
+      "id": "9cbf2479-e72a-561a-a5ac-efd87202b873",
       "name": "Filter Hay Programas",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
@@ -240,7 +240,7 @@
           "queryReplacement": "={{ [JSON.stringify($('Procesar Planilla').first().json.programas)] }}"
         }
       },
-      "id": "4e56c16c-34cb-580f-9ddc-e2ffa2624218",
+      "id": "ed569e5b-230b-5393-92ba-49692dccc4f8",
       "name": "Guardar Programas",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -255,7 +255,7 @@
         "query": "DELETE FROM crm.itvm_buffer WHERE creado_en < now() - interval '7 days';\nDELETE FROM crm.itvm_processed_messages WHERE creado_en < now() - interval '30 days';",
         "options": {}
       },
-      "id": "9cbf2479-e72a-561a-a5ac-efd87202b873",
+      "id": "d1061c89-3d7b-50ab-acf9-04859adb7ee4",
       "name": "Limpiar Tablas",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -275,7 +275,7 @@
           }
         }
       },
-      "id": "ed569e5b-230b-5393-92ba-49692dccc4f8",
+      "id": "f509a573-2883-5cd5-b42e-56f6fc3ee369",
       "name": "Leer Documento",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -292,7 +292,7 @@
       "parameters": {
         "jsCode": "let texto = String($input.first().json.data || '').replace(/^\\uFEFF/, '');\nconst esHtml = /<html|<body|<p[ >]/i.test(texto.slice(0, 2000));\nif (esHtml) {\n// En HTML los saltos de linea no significan nada: se unen las lineas de cada parrafo.\ntexto = texto.replace(/[ \\t]*[\\r\\n]+[ \\t]*/g, ' ');\ntexto = texto\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, '')\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, '')\n  .replace(/<head[\\s\\S]*?<\\/head>/gi, '')\n  .replace(/<li[^>]*>/gi, '- ')\n  .replace(/<\\/(p|li|div|tr|h[1-6])>/gi, '\\n')\n  .replace(/<br\\s*\\/?>/gi, '\\n')\n  .replace(/<[^>]+>/g, '');\nconst ent = { '&nbsp;': ' ', '&amp;': '&', '&quot;': '\"', '&#39;': \"'\", '&lt;': '<', '&gt;': '>',\n  '&aacute;': 'á', '&eacute;': 'é', '&iacute;': 'í', '&oacute;': 'ó', '&uacute;': 'ú', '&ntilde;': 'ñ',\n  '&Aacute;': 'Á', '&Eacute;': 'É', '&Iacute;': 'Í', '&Oacute;': 'Ó', '&Uacute;': 'Ú', '&Ntilde;': 'Ñ',\n  '&iquest;': '¿', '&iexcl;': '¡', '&mdash;': '—', '&ndash;': '–', '&ldquo;': '\"', '&rdquo;': '\"' };\nfor (const [k, v] of Object.entries(ent)) texto = texto.split(k).join(v);\ntexto = texto.replace(/&#(\\d+);/g, (m, c) => String.fromCodePoint(parseInt(c, 10)));\ntexto = texto.replace(/&#x([0-9a-f]+);/gi, (m, c) => String.fromCodePoint(parseInt(c, 16)));\n}\n// Texto plano de Google Docs: las vinetas vienen como \"*\" o \"●\".\ntexto = texto.replace(/^[ \\t]*[*●•][ \\t]+/gm, '- ');\ntexto = texto.replace(/\\r\\n/g, '\\n').replace(/[ \\t]+\\n/g, '\\n').replace(/\\n{3,}/g, '\\n\\n').trim();\n// Se descartan las ayudas/ejemplos entre parentesis que hayan quedado sin completar.\ntexto = texto.split('\\n').map(l => l.trim())\n  .filter(l => !/^\\((Completar|Ejemplo:|Qu[eé] t[ií]tulo|Cualquier otra cosa)/i.test(l))\n  .join('\\n').replace(/\\n{3,}/g, '\\n\\n').trim();\nconst login = /accounts\\.google|iniciar sesi[oó]n|sign in/i.test(texto.slice(0, 400));\nreturn [{ json: { texto, largo: texto.length, valido: !login && texto.length >= 80 } }];"
       },
-      "id": "d1061c89-3d7b-50ab-acf9-04859adb7ee4",
+      "id": "dae3f70b-8a95-5796-a266-98fc98d48a9e",
       "name": "Extraer Texto Documento",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -326,7 +326,7 @@
         },
         "options": {}
       },
-      "id": "f509a573-2883-5cd5-b42e-56f6fc3ee369",
+      "id": "11ae96c7-192e-510c-9581-0c51aa8ef6e1",
       "name": "Filter Documento OK",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
@@ -343,7 +343,7 @@
           "queryReplacement": "={{ [$json.texto] }}"
         }
       },
-      "id": "dae3f70b-8a95-5796-a266-98fc98d48a9e",
+      "id": "bb883a7f-3a5c-5a4a-a37f-4f8c367626a9",
       "name": "Guardar Instrucciones",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,

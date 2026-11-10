@@ -29,36 +29,48 @@
             },
             {
               "id": "2080d502-2ee8-57a9-8e0e-e583e91104be",
+              "name": "tag_activar",
+              "value": "CONTESTA IA",
+              "type": "string"
+            },
+            {
+              "id": "21d2d581-262f-5ef7-87f2-52a694b630b3",
+              "name": "tag_apagar",
+              "value": "NO IA",
+              "type": "string"
+            },
+            {
+              "id": "73da9b06-528d-5d15-9cf7-6d406edea728",
               "name": "tag_derivado",
               "value": "ITVM-derivado",
               "type": "string"
             },
             {
-              "id": "21d2d581-262f-5ef7-87f2-52a694b630b3",
+              "id": "39cb6458-6b4a-5c24-acb0-332a9cf1d2e7",
               "name": "nombre_etapa_derivado",
               "value": "LISTO PARA ASESOR (IA)",
               "type": "string"
             },
             {
-              "id": "73da9b06-528d-5d15-9cf7-6d406edea728",
+              "id": "9cb2c9b6-3338-572b-95ff-283cd7dadb9f",
               "name": "campo_respuesta_lead_id",
               "value": 3929118,
               "type": "number"
             },
             {
-              "id": "39cb6458-6b4a-5c24-acb0-332a9cf1d2e7",
+              "id": "b45e63c1-442a-5ff5-a36b-b3aa030fe88a",
               "name": "campo_resumen_lead_id",
               "value": 3929120,
               "type": "number"
             },
             {
-              "id": "9cb2c9b6-3338-572b-95ff-283cd7dadb9f",
+              "id": "eee2439b-1408-514c-89b5-c6c751a6c14e",
               "name": "salesbot_id",
               "value": 212896,
               "type": "number"
             },
             {
-              "id": "b45e63c1-442a-5ff5-a36b-b3aa030fe88a",
+              "id": "225a0556-ec60-5c37-82a1-a55dc3ad2300",
               "name": "segundos_debounce",
               "value": 8,
               "type": "number"
@@ -68,7 +80,7 @@
         "options": {},
         "includeOtherFields": true
       },
-      "id": "eee2439b-1408-514c-89b5-c6c751a6c14e",
+      "id": "315144c7-1cdc-5a85-886d-a71a6b1002f7",
       "name": "Config ITVM",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -82,61 +94,61 @@
         "assignments": {
           "assignments": [
             {
-              "id": "225a0556-ec60-5c37-82a1-a55dc3ad2300",
+              "id": "f735b509-c5f2-5e5d-afaa-3c29021e6f4d",
               "name": "message_id",
               "value": "={{ $json.body['message[add][0][id]'] }}",
               "type": "string"
             },
             {
-              "id": "315144c7-1cdc-5a85-886d-a71a6b1002f7",
+              "id": "71a9891d-badc-5fb5-8422-2250806a9fc0",
               "name": "chat_id",
               "value": "={{ $json.body['message[add][0][chat_id]'] }}",
               "type": "string"
             },
             {
-              "id": "f735b509-c5f2-5e5d-afaa-3c29021e6f4d",
+              "id": "7ddbcef1-1c2c-5e4d-868a-8d22d9d43980",
               "name": "element_id",
               "value": "={{ $json.body['message[add][0][element_id]'] }}",
               "type": "string"
             },
             {
-              "id": "71a9891d-badc-5fb5-8422-2250806a9fc0",
+              "id": "7df6d2af-94e6-56ff-b719-1e910f359660",
               "name": "element_type",
               "value": "={{ $json.body['message[add][0][element_type]'] || '' }}",
               "type": "string"
             },
             {
-              "id": "7ddbcef1-1c2c-5e4d-868a-8d22d9d43980",
+              "id": "f7531fab-b9d7-5b3c-84d1-c07712942fbc",
               "name": "contact_id",
               "value": "={{ $json.body['message[add][0][contact_id]'] || '' }}",
               "type": "string"
             },
             {
-              "id": "7df6d2af-94e6-56ff-b719-1e910f359660",
+              "id": "391c9437-5904-5424-8584-3c66dffcf26d",
               "name": "text",
               "value": "={{ $json.body['message[add][0][text]'] || '' }}",
               "type": "string"
             },
             {
-              "id": "f7531fab-b9d7-5b3c-84d1-c07712942fbc",
+              "id": "1e12179f-b41d-5277-9f99-6f190b702dea",
               "name": "attachment_type",
               "value": "={{ $json.body['message[add][0][attachment][type]'] || 'text' }}",
               "type": "string"
             },
             {
-              "id": "391c9437-5904-5424-8584-3c66dffcf26d",
+              "id": "86c4facd-ce47-5e88-8c3a-43d6d86c2212",
               "name": "attachment_link",
               "value": "={{ $json.body['message[add][0][attachment][link]'] || '' }}",
               "type": "string"
             },
             {
-              "id": "1e12179f-b41d-5277-9f99-6f190b702dea",
+              "id": "0980a541-fe28-5695-8608-769eded7ba03",
               "name": "author_name",
               "value": "={{ $json.body['message[add][0][author][name]'] || '' }}",
               "type": "string"
             },
             {
-              "id": "86c4facd-ce47-5e88-8c3a-43d6d86c2212",
+              "id": "f697303b-26ff-55f2-97c5-e9525b3a3acb",
               "name": "author_type",
               "value": "={{ $json.body['message[add][0][author][type]'] || 'customer' }}",
               "type": "string"
@@ -145,7 +157,7 @@
         },
         "options": {}
       },
-      "id": "0980a541-fe28-5695-8608-769eded7ba03",
+      "id": "33ff7bb2-6860-5ac9-a0a3-17a47888bcef",
       "name": "Set Campos Mensaje",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -162,7 +174,7 @@
           "queryReplacement": "={{ [$('Set Campos Mensaje').first().json.message_id, $('Set Campos Mensaje').first().json.chat_id] }}"
         }
       },
-      "id": "f697303b-26ff-55f2-97c5-e9525b3a3acb",
+      "id": "0ebf4b31-61fc-52e1-9585-992d16d7a00a",
       "name": "Idempotencia",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -196,7 +208,7 @@
         },
         "options": {}
       },
-      "id": "33ff7bb2-6860-5ac9-a0a3-17a47888bcef",
+      "id": "54a08d7d-b7d6-5b91-b24a-eb1949c73f02",
       "name": "Filter Mensaje Nuevo",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
@@ -260,7 +272,7 @@
         },
         "options": {}
       },
-      "id": "0ebf4b31-61fc-52e1-9585-992d16d7a00a",
+      "id": "17b97750-0be6-5b94-9191-85d577678b40",
       "name": "Filter Mensaje Valido",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
@@ -274,7 +286,7 @@
         "amount": 2,
         "unit": "seconds"
       },
-      "id": "17b97750-0be6-5b94-9191-85d577678b40",
+      "id": "434df2f4-3591-53df-ba77-b3b6109efdf3",
       "name": "Wait Inicial 2s",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
@@ -282,7 +294,7 @@
         1320,
         300
       ],
-      "webhookId": "54a08d7d-b7d6-5b91-b24a-eb1949c73f02"
+      "webhookId": "6b0e39df-484a-545f-8ae7-7752c36941ab"
     },
     {
       "parameters": {
@@ -306,7 +318,7 @@
           ]
         }
       },
-      "id": "6b0e39df-484a-545f-8ae7-7752c36941ab",
+      "id": "40c08c5a-3cbb-53dd-8278-70fc16b0d34a",
       "name": "Get Lead",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -327,7 +339,27 @@
           "conditions": [
             {
               "id": "t1",
-              "leftValue": "={{ !((($json._embedded && $json._embedded.tags) || []).some(t => String(t.name || '').toLowerCase() === String($('Config ITVM').first().json.tag_derivado).toLowerCase())) }}",
+              "leftValue": "={{ (($json._embedded && $json._embedded.tags) || []).some(t => String(t.name || '').trim().toLowerCase() === String($('Config ITVM').first().json.tag_activar || '').trim().toLowerCase()) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "t2",
+              "leftValue": "={{ !(($json._embedded && $json._embedded.tags) || []).some(t => String(t.name || '').trim().toLowerCase() === String($('Config ITVM').first().json.tag_apagar || '').trim().toLowerCase()) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "t3",
+              "leftValue": "={{ !(($json._embedded && $json._embedded.tags) || []).some(t => String(t.name || '').trim().toLowerCase() === String($('Config ITVM').first().json.tag_derivado || '').trim().toLowerCase()) }}",
               "rightValue": true,
               "operator": {
                 "type": "boolean",
@@ -340,7 +372,7 @@
         },
         "options": {}
       },
-      "id": "434df2f4-3591-53df-ba77-b3b6109efdf3",
+      "id": "ab6b0998-9979-5baf-90e7-bfdb87b01a89",
       "name": "Filter Bot Activo",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
@@ -384,7 +416,7 @@
           "renameFallbackOutput": "normal"
         }
       },
-      "id": "40c08c5a-3cbb-53dd-8278-70fc16b0d34a",
+      "id": "67fc7bff-fd13-51be-a582-b04e7f7858e6",
       "name": "Switch /reset",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
@@ -401,7 +433,7 @@
           "queryReplacement": "={{ [$('Set Campos Mensaje').first().json.chat_id] }}"
         }
       },
-      "id": "ab6b0998-9979-5baf-90e7-bfdb87b01a89",
+      "id": "0602ffea-f957-5631-9791-c7a233d6e335",
       "name": "Reset Memoria",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -415,7 +447,7 @@
         "assignments": {
           "assignments": [
             {
-              "id": "67fc7bff-fd13-51be-a582-b04e7f7858e6",
+              "id": "b34d3ff6-36c5-50b1-98da-6d27795e9620",
               "name": "output",
               "value": "Listo, reinicié la conversación. ¿En qué le puedo ayudar?",
               "type": "string"
@@ -424,7 +456,7 @@
         },
         "options": {}
       },
-      "id": "0602ffea-f957-5631-9791-c7a233d6e335",
+      "id": "3890c14c-8707-5581-9e19-abb189a8eda0",
       "name": "Set Output Reset",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -469,7 +501,7 @@
           "renameFallbackOutput": "texto"
         }
       },
-      "id": "b34d3ff6-36c5-50b1-98da-6d27795e9620",
+      "id": "8ce6c6d8-ca6f-50ac-9f66-8bbfd79a60fa",
       "name": "Switch Tipo",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
@@ -489,7 +521,7 @@
           }
         }
       },
-      "id": "3890c14c-8707-5581-9e19-abb189a8eda0",
+      "id": "759d0351-6ec0-5910-af2d-01db993c53e3",
       "name": "Download Audio",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -506,7 +538,7 @@
           "language": "es"
         }
       },
-      "id": "8ce6c6d8-ca6f-50ac-9f66-8bbfd79a60fa",
+      "id": "00403ede-6e5a-580b-9313-b1d6cefc7df4",
       "name": "Transcribir Audio",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.8,
@@ -521,7 +553,7 @@
         "assignments": {
           "assignments": [
             {
-              "id": "759d0351-6ec0-5910-af2d-01db993c53e3",
+              "id": "f4c38b10-82ac-54c6-9c6e-7b0b3a0074a0",
               "name": "content",
               "value": "={{ ($json.text || '').trim() || '[El cliente envió un audio que no se pudo transcribir]' }}",
               "type": "string"
@@ -530,7 +562,7 @@
         },
         "options": {}
       },
-      "id": "00403ede-6e5a-580b-9313-b1d6cefc7df4",
+      "id": "97f74815-c94e-57af-85df-626b9017c1c5",
       "name": "Set Audio Text",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -544,7 +576,7 @@
         "assignments": {
           "assignments": [
             {
-              "id": "f4c38b10-82ac-54c6-9c6e-7b0b3a0074a0",
+              "id": "3f783b05-70df-596c-a09c-241c9bfa6891",
               "name": "content",
               "value": "={{ ($('Set Campos Mensaje').first().json.text || '').trim() || ('[El cliente envió un archivo de tipo ' + $('Set Campos Mensaje').first().json.attachment_type + ' sin texto]') }}",
               "type": "string"
@@ -553,7 +585,7 @@
         },
         "options": {}
       },
-      "id": "97f74815-c94e-57af-85df-626b9017c1c5",
+      "id": "cc7fdb12-bf43-5f1a-9312-2be630a01edb",
       "name": "Set Text Content",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -570,7 +602,7 @@
           "queryReplacement": "={{ [$('Set Campos Mensaje').first().json.message_id, $('Set Campos Mensaje').first().json.chat_id, $json.content] }}"
         }
       },
-      "id": "3f783b05-70df-596c-a09c-241c9bfa6891",
+      "id": "a4e8328d-3dca-56e2-8ee0-9fc28ef872e1",
       "name": "Guardar en Buffer",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -584,7 +616,7 @@
         "amount": "={{ $('Config ITVM').first().json.segundos_debounce }}",
         "unit": "seconds"
       },
-      "id": "a4e8328d-3dca-56e2-8ee0-9fc28ef872e1",
+      "id": "33841a8c-e4fc-54c4-a13c-c040b2219e39",
       "name": "Wait Debounce",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
@@ -592,7 +624,7 @@
         3300,
         400
       ],
-      "webhookId": "cc7fdb12-bf43-5f1a-9312-2be630a01edb"
+      "webhookId": "24763c95-9f43-5535-b675-822ff5a72852"
     },
     {
       "parameters": {
@@ -602,7 +634,7 @@
           "queryReplacement": "={{ [$('Set Campos Mensaje').first().json.message_id, $('Set Campos Mensaje').first().json.chat_id] }}"
         }
       },
-      "id": "24763c95-9f43-5535-b675-822ff5a72852",
+      "id": "5b22b58e-13c0-5675-a950-c23d23377153",
       "name": "Reclamar Buffer",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -615,7 +647,7 @@
       "parameters": {
         "jsCode": "// Si esta ejecucion no era la del ultimo mensaje, no llegan filas y se corta.\nconst filas = $input.all().map(i => i.json).filter(j => j && j.id && j.content);\nif (filas.length === 0) return [];\nfilas.sort((a, b) => Number(a.id) - Number(b.id));\nconst chat_input = filas.map(f => String(f.content).trim()).filter(Boolean).join('\\n');\nreturn [{ json: { chat_input } }];"
       },
-      "id": "33841a8c-e4fc-54c4-a13c-c040b2219e39",
+      "id": "3d147d9f-621d-50ea-8198-30550ce31f33",
       "name": "Unir Mensajes",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -630,7 +662,7 @@
         "query": "SELECT instrucciones, notas_adicionales FROM crm.itvm_bot_config WHERE id = 1;",
         "options": {}
       },
-      "id": "5b22b58e-13c0-5675-a950-c23d23377153",
+      "id": "8b800024-e1c0-5e5d-aaf2-06389e4c0af8",
       "name": "Leer Config",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -650,7 +682,7 @@
           "maxIterations": 8
         }
       },
-      "id": "3d147d9f-621d-50ea-8198-30550ce31f33",
+      "id": "682f3360-290e-52fd-8ac9-1349ec5b7385",
       "name": "Agente ITVM",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.9,
@@ -671,7 +703,7 @@
           "temperature": 0.4
         }
       },
-      "id": "8b800024-e1c0-5e5d-aaf2-06389e4c0af8",
+      "id": "1b67179c-4152-588a-9c47-66cfa5107136",
       "name": "OpenAI Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
@@ -690,7 +722,7 @@
         "tableName": "itvm_chat_histories",
         "contextWindowLength": 20
       },
-      "id": "682f3360-290e-52fd-8ac9-1349ec5b7385",
+      "id": "d638f195-c0ec-53c2-9d5b-054d52a8f944",
       "name": "Postgres Chat Memory",
       "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
       "typeVersion": 1.3,
@@ -729,7 +761,7 @@
           "convertFieldsToString": false
         }
       },
-      "id": "1b67179c-4152-588a-9c47-66cfa5107136",
+      "id": "31d69fdc-e316-59e1-852e-9fba0640347a",
       "name": "Buscar programas",
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
@@ -742,7 +774,7 @@
       "parameters": {
         "jsCode": "const lead_id = Number($('Set Campos Mensaje').first().json.element_id) || null;\nlet output = String($json.output || '').trim();\n// El agente agrega [DERIVAR] al final cuando hay que pasar con un asesor: se quita antes de enviar.\nconst derivar = /\\[DERIVAR\\]/i.test(output);\noutput = output.replace(/\\[DERIVAR\\]/gi, '').trim();\nif (!output && derivar) output = 'Perfecto, un asesor de admisiones le va a contactar en breve.';\nif (!output) return [];\n// Kommo/WhatsApp no renderizan markdown de titulos ni negritas dobles.\noutput = output.replace(/\\*\\*(.+?)\\*\\*/g, '*$1*').replace(/^#+\\s*/gm, '');\nreturn [{ json: { output, lead_id, derivar } }];"
       },
-      "id": "d638f195-c0ec-53c2-9d5b-054d52a8f944",
+      "id": "4d248811-cfcc-5ca1-a868-52b35caee812",
       "name": "Preparar Respuesta",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -776,7 +808,7 @@
         },
         "options": {}
       },
-      "id": "31d69fdc-e316-59e1-852e-9fba0640347a",
+      "id": "ab94c156-df4d-53d4-b1ae-0540679b4b81",
       "name": "Filter Tiene Lead",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
@@ -802,7 +834,7 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ custom_fields_values: [{ field_id: Number($('Config ITVM').first().json.campo_respuesta_lead_id), values: [{ value: $json.output }] }] }) }}"
       },
-      "id": "4d248811-cfcc-5ca1-a868-52b35caee812",
+      "id": "c0e375bd-6b38-59d3-8887-4376348619ec",
       "name": "Guardar Respuesta en Lead",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -816,7 +848,7 @@
         "amount": 2,
         "unit": "seconds"
       },
-      "id": "c0e375bd-6b38-59d3-8887-4376348619ec",
+      "id": "522ccb41-8bb5-50fb-b71f-7aca2320acd5",
       "name": "Wait Propagacion",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
@@ -824,7 +856,7 @@
         4980,
         300
       ],
-      "webhookId": "ab94c156-df4d-53d4-b1ae-0540679b4b81"
+      "webhookId": "d4134397-b1c8-5ffa-a512-c0aeaba308d7"
     },
     {
       "parameters": {
@@ -843,7 +875,7 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify([{ bot_id: Number($('Config ITVM').first().json.salesbot_id), entity_id: Number($('Preparar Respuesta').first().json.lead_id), entity_type: 2 }]) }}"
       },
-      "id": "d4134397-b1c8-5ffa-a512-c0aeaba308d7",
+      "id": "615f6810-e7c4-5c4f-b617-902cb7f9b15c",
       "name": "Run Salesbot",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -877,7 +909,7 @@
         },
         "options": {}
       },
-      "id": "522ccb41-8bb5-50fb-b71f-7aca2320acd5",
+      "id": "6ad0d00a-18d5-52e5-b5f2-8c68dcce651b",
       "name": "Filter Derivar",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
@@ -894,7 +926,7 @@
           "queryReplacement": "={{ [$('Set Campos Mensaje').first().json.chat_id] }}"
         }
       },
-      "id": "615f6810-e7c4-5c4f-b617-902cb7f9b15c",
+      "id": "1b36f36a-cbee-5812-bc80-bc32ddb4f4c5",
       "name": "Get Historial",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -916,7 +948,7 @@
         "jsonBody": "={{ JSON.stringify({ model: 'gpt-5.4-mini', messages: [{ role: 'system', content: 'Sos asistente de admisiones de un instituto tecnico. Resumi esta conversacion de WhatsApp para que un asesor la retome sin leerla. Formato, una linea por dato y SOLO los que aparezcan: Nombre / Programa de interes / Horario preferido / Cumple requisitos (edad, escolaridad) / Financiamiento / Dudas pendientes / Contacto. Sin saludos ni relleno.' }, { role: 'user', content: ($json.convo || 'sin historial') }] }) }}",
         "options": {}
       },
-      "id": "6ad0d00a-18d5-52e5-b5f2-8c68dcce651b",
+      "id": "20514672-6b3c-5ba9-b032-a33507250d61",
       "name": "Resumen IA",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -939,7 +971,7 @@
           }
         }
       },
-      "id": "1b36f36a-cbee-5812-bc80-bc32ddb4f4c5",
+      "id": "e2d8b931-0dc3-5fbc-99b4-4c3ea4c41fbf",
       "name": "Get Etapas",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -954,7 +986,7 @@
       "parameters": {
         "jsCode": "// Cada asesor tiene su embudo: se busca la etapa de derivacion POR NOMBRE dentro del embudo del lead.\nconst cfg = $('Config ITVM').first().json;\nconst norm = v => String(v || '').trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\nconst r = $('Resumen IA').first().json || {};\nconst resumen = String((r.choices && r.choices[0] && r.choices[0].message && r.choices[0].message.content) || 'Pidio hablar con un asesor (ver chat).').trim();\nconst etapas = (($input.first().json || {})._embedded || {}).statuses || [];\nconst etapa = etapas.find(e => norm(e.name) === norm(cfg.nombre_etapa_derivado));\nconst body = { tags_to_add: [{ name: cfg.tag_derivado }] };\nif (etapa) body.status_id = etapa.id;\nif (Number(cfg.campo_resumen_lead_id) > 0) body.custom_fields_values = [{ field_id: Number(cfg.campo_resumen_lead_id), values: [{ value: resumen }] }];\nreturn [{ json: { body, nota: 'Derivado por el asistente IA de ITVM\\n' + resumen } }];"
       },
-      "id": "20514672-6b3c-5ba9-b032-a33507250d61",
+      "id": "a77eae16-def8-565d-9cea-6f2bf9dd0610",
       "name": "Armar Derivacion",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -980,7 +1012,7 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.body) }}"
       },
-      "id": "e2d8b931-0dc3-5fbc-99b4-4c3ea4c41fbf",
+      "id": "cb3b4d47-b1ac-5af9-aa84-666659daa620",
       "name": "Actualizar Lead",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -1007,7 +1039,7 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify([{ note_type: 'common', params: { text: $('Armar Derivacion').first().json.nota } }]) }}"
       },
-      "id": "a77eae16-def8-565d-9cea-6f2bf9dd0610",
+      "id": "8f639b0e-d5dc-597f-bbd0-63e3dbbddc17",
       "name": "Agregar Nota",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
