@@ -34,7 +34,7 @@
             {
               "id": "b96fcffb-c570-566d-9d29-5fe1025ebcd9",
               "name": "doc_id",
-              "value": "PEGAR_ID_DEL_DOCUMENTO",
+              "value": "190WtOTVfCgF01xcNyE2UA4DO6CYypPOWMYd1aY2Ucpk",
               "type": "string"
             }
           ]
@@ -240,7 +240,7 @@
     },
     {
       "parameters": {
-        "url": "=https://docs.google.com/document/d/{{ $json.doc_id }}/mobilebasic",
+        "url": "=https://docs.google.com/document/d/{{ $json.doc_id }}/export?format=txt",
         "options": {
           "response": {
             "response": {
@@ -264,7 +264,7 @@
     },
     {
       "parameters": {
-        "jsCode": "let texto = String($input.first().json.data || '');\n// En HTML los saltos de linea no significan nada: se unen las lineas de cada parrafo.\ntexto = texto.replace(/[ \\t]*[\\r\\n]+[ \\t]*/g, ' ');\ntexto = texto\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, '')\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, '')\n  .replace(/<head[\\s\\S]*?<\\/head>/gi, '')\n  .replace(/<li[^>]*>/gi, '- ')\n  .replace(/<\\/(p|li|div|tr|h[1-6])>/gi, '\\n')\n  .replace(/<br\\s*\\/?>/gi, '\\n')\n  .replace(/<[^>]+>/g, '');\nconst ent = { '&nbsp;': ' ', '&amp;': '&', '&quot;': '\"', '&#39;': \"'\", '&lt;': '<', '&gt;': '>',\n  '&aacute;': 'á', '&eacute;': 'é', '&iacute;': 'í', '&oacute;': 'ó', '&uacute;': 'ú', '&ntilde;': 'ñ',\n  '&Aacute;': 'Á', '&Eacute;': 'É', '&Iacute;': 'Í', '&Oacute;': 'Ó', '&Uacute;': 'Ú', '&Ntilde;': 'Ñ',\n  '&iquest;': '¿', '&iexcl;': '¡', '&mdash;': '—', '&ndash;': '–', '&ldquo;': '\"', '&rdquo;': '\"' };\nfor (const [k, v] of Object.entries(ent)) texto = texto.split(k).join(v);\ntexto = texto.replace(/&#(\\d+);/g, (m, c) => String.fromCodePoint(parseInt(c, 10)));\ntexto = texto.replace(/&#x([0-9a-f]+);/gi, (m, c) => String.fromCodePoint(parseInt(c, 16)));\ntexto = texto.replace(/\\r\\n/g, '\\n').replace(/[ \\t]+\\n/g, '\\n').replace(/\\n{3,}/g, '\\n\\n').trim();\n// Se descartan las ayudas/ejemplos entre parentesis que hayan quedado sin completar.\ntexto = texto.split('\\n').map(l => l.trim())\n  .filter(l => !/^\\((Completar|Ejemplo:|Qu[eé] t[ií]tulo|Cualquier otra cosa)/i.test(l))\n  .join('\\n').replace(/\\n{3,}/g, '\\n\\n').trim();\nconst login = /accounts\\.google|iniciar sesi[oó]n|sign in/i.test(texto.slice(0, 400));\nreturn [{ json: { texto, largo: texto.length, valido: !login && texto.length >= 80 } }];"
+        "jsCode": "let texto = String($input.first().json.data || '').replace(/^\\uFEFF/, '');\nconst esHtml = /<html|<body|<p[ >]/i.test(texto.slice(0, 2000));\nif (esHtml) {\n// En HTML los saltos de linea no significan nada: se unen las lineas de cada parrafo.\ntexto = texto.replace(/[ \\t]*[\\r\\n]+[ \\t]*/g, ' ');\ntexto = texto\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, '')\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, '')\n  .replace(/<head[\\s\\S]*?<\\/head>/gi, '')\n  .replace(/<li[^>]*>/gi, '- ')\n  .replace(/<\\/(p|li|div|tr|h[1-6])>/gi, '\\n')\n  .replace(/<br\\s*\\/?>/gi, '\\n')\n  .replace(/<[^>]+>/g, '');\nconst ent = { '&nbsp;': ' ', '&amp;': '&', '&quot;': '\"', '&#39;': \"'\", '&lt;': '<', '&gt;': '>',\n  '&aacute;': 'á', '&eacute;': 'é', '&iacute;': 'í', '&oacute;': 'ó', '&uacute;': 'ú', '&ntilde;': 'ñ',\n  '&Aacute;': 'Á', '&Eacute;': 'É', '&Iacute;': 'Í', '&Oacute;': 'Ó', '&Uacute;': 'Ú', '&Ntilde;': 'Ñ',\n  '&iquest;': '¿', '&iexcl;': '¡', '&mdash;': '—', '&ndash;': '–', '&ldquo;': '\"', '&rdquo;': '\"' };\nfor (const [k, v] of Object.entries(ent)) texto = texto.split(k).join(v);\ntexto = texto.replace(/&#(\\d+);/g, (m, c) => String.fromCodePoint(parseInt(c, 10)));\ntexto = texto.replace(/&#x([0-9a-f]+);/gi, (m, c) => String.fromCodePoint(parseInt(c, 16)));\n}\n// Texto plano de Google Docs: las vinetas vienen como \"*\" o \"●\".\ntexto = texto.replace(/^[ \\t]*[*●•][ \\t]+/gm, '- ');\ntexto = texto.replace(/\\r\\n/g, '\\n').replace(/[ \\t]+\\n/g, '\\n').replace(/\\n{3,}/g, '\\n\\n').trim();\n// Se descartan las ayudas/ejemplos entre parentesis que hayan quedado sin completar.\ntexto = texto.split('\\n').map(l => l.trim())\n  .filter(l => !/^\\((Completar|Ejemplo:|Qu[eé] t[ií]tulo|Cualquier otra cosa)/i.test(l))\n  .join('\\n').replace(/\\n{3,}/g, '\\n\\n').trim();\nconst login = /accounts\\.google|iniciar sesi[oó]n|sign in/i.test(texto.slice(0, 400));\nreturn [{ json: { texto, largo: texto.length, valido: !login && texto.length >= 80 } }];"
       },
       "id": "9abca501-edc8-5f08-a69a-d9cbc01d7808",
       "name": "Extraer Texto Documento",

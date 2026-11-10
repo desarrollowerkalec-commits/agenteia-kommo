@@ -633,10 +633,12 @@ def wf_derivar():
 SHEET_ID = "1YZqpfdGdRLp2OH683OvN3NZUjd0D_N27"
 # ID del Google Doc "ITVM - Instrucciones del asistente" (debe estar guardado como Documento de Google,
 # no como .docx, y compartido como "cualquier persona con el enlace puede ver").
-DOC_ID = "PEGAR_ID_DEL_DOCUMENTO"
+DOC_ID = "190WtOTVfCgF01xcNyE2UA4DO6CYypPOWMYd1aY2Ucpk"
 
 JS_EXTRAER_DOC = r"""
-let texto = String($input.first().json.data || '');
+let texto = String($input.first().json.data || '').replace(/^\uFEFF/, '');
+const esHtml = /<html|<body|<p[ >]/i.test(texto.slice(0, 2000));
+if (esHtml) {
 // En HTML los saltos de linea no significan nada: se unen las lineas de cada parrafo.
 texto = texto.replace(/[ \t]*[\r\n]+[ \t]*/g, ' ');
 texto = texto
@@ -654,6 +656,9 @@ const ent = { '&nbsp;': ' ', '&amp;': '&', '&quot;': '"', '&#39;': "'", '&lt;': 
 for (const [k, v] of Object.entries(ent)) texto = texto.split(k).join(v);
 texto = texto.replace(/&#(\d+);/g, (m, c) => String.fromCodePoint(parseInt(c, 10)));
 texto = texto.replace(/&#x([0-9a-f]+);/gi, (m, c) => String.fromCodePoint(parseInt(c, 16)));
+}
+// Texto plano de Google Docs: las vinetas vienen como "*" o "●".
+texto = texto.replace(/^[ \t]*[*●•][ \t]+/gm, '- ');
 texto = texto.replace(/\r\n/g, '\n').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 // Se descartan las ayudas/ejemplos entre parentesis que hayan quedado sin completar.
 texto = texto.split('\n').map(l => l.trim())
@@ -887,7 +892,8 @@ def wf_sync_planilla():
     conectar(C, "Config Sync", "Hojas")
     # --- Documento de instrucciones (Google Doc)
     N.append(nodo("Leer Documento", "n8n-nodes-base.httpRequest", 4.2, (330, 740), {
-        "url": "=https://docs.google.com/document/d/{{ $json.doc_id }}/mobilebasic",
+        # export?format=txt redirige a googleusercontent.com (n8n sigue la redireccion sola).
+        "url": "=https://docs.google.com/document/d/{{ $json.doc_id }}/export?format=txt",
         "options": {"response": {"response": {"responseFormat": "text"}}},
     }, retryOnFail=True, maxTries=3, waitBetweenTries=5000, onError="continueRegularOutput"))
     N.append(nodo("Extraer Texto Documento", "n8n-nodes-base.code", 2, (550, 740), {"jsCode": JS_EXTRAER_DOC}))
