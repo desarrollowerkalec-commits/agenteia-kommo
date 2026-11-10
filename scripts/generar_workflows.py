@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """
-Genera los workflows de n8n del agente ITVM en workflows/*.json.
+Genera los 3 workflows de n8n del agente ITVM en workflows/*.json:
+  ITVM - Chat         principal (webhook Kommo -> agente -> respuesta / derivacion)
+  ITVM - Busqueda     tool del agente: carreras y cursos
+  ITVM - Actualizar   1 vez por dia: planilla + documento de Google -> base de datos
 
-El prompt del agente vive en prompts/agente-itvm.md (fuente unica). Despues de editarlo,
-volve a correr este script y reimporta "ITVM - Chat Kommo" en n8n.
+Las reglas fijas del agente viven en prompts/agente-itvm.md. Despues de editarlo,
+volve a correr este script y reimporta "ITVM - Chat" en n8n.
 
 Uso:
-  python3 scripts/generar_workflows.py \
-      --id-oferta  <ID workflow "ITVM - Consultar oferta academica"> \
-      --id-info    <ID workflow "ITVM - Consultar info adicional"> \
-      --id-derivar <ID workflow "ITVM - Derivar a asesor">
+  python3 scripts/generar_workflows.py [--id-busqueda <ID del workflow "ITVM - Busqueda" en n8n>]
 
-Los IDs de subworkflows son opcionales: si no se pasan, despues de importar hay que
-elegir el subworkflow a mano en cada nodo tool del agente.
+Si no se pasa el ID, despues de importar hay que elegir "ITVM - Busqueda" a mano en el
+nodo "Buscar programas" del Chat.
 """
 import argparse
 import json
@@ -200,7 +200,7 @@ BASE = "{{ " + CFG + ".kommo_base_url }}"
 
 
 # ---------------------------------------------------------------------------
-# 1) Workflow principal: ITVM - Chat Kommo
+# 1) Workflow principal: ITVM - Chat
 # ---------------------------------------------------------------------------
 def wf_chat(prompt, ids):
     N, C = [], {}
@@ -367,12 +367,15 @@ def wf_chat(prompt, ids):
         + "- Fecha y hora actual en Costa Rica: {{ $now.setZone('America/Costa_Rica').setLocale('es').toFormat('cccc d \\'de\\' LLLL \\'de\\' yyyy, HH:mm') }}\n"
         + "- Nombre que figura en el chat: {{ " + MSG + ".author_name || 'desconocido' }}\n"
         + "\n---\n\n# INSTRUCCIONES DEL NEGOCIO (documento que mantiene ITVM)\n\n"
-        + "{{ String($('Leer Instrucciones').first().json.instrucciones || '').trim() || "
+        + "{{ String($('Leer Config').first().json.instrucciones || '').trim() || "
         + "'No hay instrucciones cargadas. Presentate como el asistente virtual de admisiones de ITVM, trata de usted y deriva a un asesor cuando quieran matricularse.' }}\n"
+        + "\n---\n\n# INFORMACION ACTUALIZADA (planilla que mantiene ITVM: datos de contacto, precios, horarios, promociones, preguntas frecuentes)\n\n"
+        + "{{ String($('Leer Config').first().json.notas_adicionales || '').trim() || "
+        + "'No hay informacion cargada: precios, horarios y fechas los confirma un asesor.' }}\n"
     )
-    # Instrucciones del negocio (Word/Google Doc de ITVM, sincronizado por "ITVM - Sync Planilla").
-    add(pg("SELECT instrucciones FROM crm.itvm_bot_config WHERE id = 1;",
-           nombre="Leer Instrucciones", pos=(3850, 400), alwaysOutputData=True, onError="continueRegularOutput"))
+    # Documento (instrucciones) y planilla (info actualizada) que guarda "ITVM - Actualizar".
+    add(pg("SELECT instrucciones, notas_adicionales FROM crm.itvm_bot_config WHERE id = 1;",
+           nombre="Leer Config", pos=(3850, 400), alwaysOutputData=True, onError="continueRegularOutput"))
     add(nodo("Agente ITVM", "@n8n/n8n-nodes-langchain.agent", 1.9, (4070, 400), {
         "promptType": "define",
         "text": "={{ $('Unir Mensajes').first().json.chat_input }}",
@@ -390,53 +393,27 @@ def wf_chat(prompt, ids):
     }))
 
     add(tool_workflow(
-        "Consultar oferta academica", (4100, 640),
+        "Buscar programas", (4200, 640),
         "Devuelve la informacion oficial de las carreras tecnicas y cursos libres de ITVM: modalidad, "
-        "duracion, horario, requisitos, contenido y links (pagina y folleto PDF). Usala SIEMPRE antes de "
-        "dar esos datos. Input 'consulta': nombre del programa o tema en pocas palabras (ej 'motos', "
+        "duracion, requisitos, contenido, a quien va dirigido y links (pagina y folleto PDF). Usala SIEMPRE "
+        "antes de dar esos datos. Input 'consulta': nombre del programa o tema en pocas palabras (ej 'motos', "
         "'peritaje', 'electricidad residencial', 'diesel'), o 'todos', 'carreras' o 'cursos' para listar.",
-        ref_workflow(ids.get("oferta"), "ITVM - Consultar oferta academica"),
+        ref_workflow(ids.get("busqueda"), "ITVM - Busqueda"),
         {"consulta": from_ai("consulta", "Programa o tema a consultar, o 'todos' / 'carreras' / 'cursos'")},
-    ))
-    add(tool_workflow(
-        "Consultar informacion adicional", (4240, 640),
-        "Devuelve la informacion que el equipo de ITVM actualiza seguido: precios, fechas de inicio, "
-        "horarios especificos, promociones, becas, cupos y avisos. Usala SIEMPRE antes de hablar de "
-        "precios, costos, matricula, fechas de inicio o promociones, y cuando te pregunten algo que no "
-        "este en tus instrucciones.",
-        ref_workflow(ids.get("info"), "ITVM - Consultar info adicional"),
-        {"tema": from_ai("tema", "Tema que se quiere consultar, en pocas palabras")},
-    ))
-    add(tool_workflow(
-        "Derivar a asesor", (4380, 640),
-        "Pasa la conversacion a un asesor humano de admisiones: mueve el lead a la etapa de derivacion, le agrega la "
-        "etiqueta de derivado y deja una nota con el resumen. Despues de esto el bot deja de responder "
-        "en este chat. Usala cuando la persona quiere matricularse, pide hablar con una persona o visitar "
-        "el instituto, es una empresa, o necesita algo que solo resuelve un humano.",
-        ref_workflow(ids.get("derivar"), "ITVM - Derivar a asesor"),
-        {
-            "nombre": from_ai("nombre", "Nombre de la persona, si lo dio. Vacio si no"),
-            "programa": from_ai("programa", "Programa de interes, ej 'Tecnico en Peritaje Automotriz'"),
-            "horario_preferido": from_ai("horario_preferido", "Horario que prefiere (diurno, nocturno, sabados), si lo dijo"),
-            "financiamiento": from_ai("financiamiento", "Si pregunto por financiamiento (CONAPE o propio) y que dijo. Vacio si no"),
-            "resumen": from_ai("resumen", "Resumen de 3 a 6 lineas para el asesor: que quiere, si cumple requisitos, dudas pendientes y datos de contacto que dio"),
-            "lead_id": "={{ " + MSG + ".element_id }}",
-            "kommo_base_url": "={{ " + CFG + ".kommo_base_url }}",
-            "pipeline_id": "={{ $('Get Lead').first().json.pipeline_id }}",
-            "nombre_etapa_derivado": "={{ " + CFG + ".nombre_etapa_derivado }}",
-            "tag_derivado": "={{ " + CFG + ".tag_derivado }}",
-            "campo_resumen_lead_id": "={{ " + CFG + ".campo_resumen_lead_id }}",
-        },
     ))
 
     add(nodo("Preparar Respuesta", "n8n-nodes-base.code", 2, (4320, 300), {
         "jsCode": (
             "const lead_id = Number($('Set Campos Mensaje').first().json.element_id) || null;\n"
             "let output = String($json.output || '').trim();\n"
+            "// El agente agrega [DERIVAR] al final cuando hay que pasar con un asesor: se quita antes de enviar.\n"
+            "const derivar = /\\[DERIVAR\\]/i.test(output);\n"
+            "output = output.replace(/\\[DERIVAR\\]/gi, '').trim();\n"
+            "if (!output && derivar) output = 'Perfecto, un asesor de admisiones le va a contactar en breve.';\n"
             "if (!output) return [];\n"
             "// Kommo/WhatsApp no renderizan markdown de titulos ni negritas dobles.\n"
             "output = output.replace(/\\*\\*(.+?)\\*\\*/g, '*$1*').replace(/^#+\\s*/gm, '');\n"
-            "return [{ json: { output, lead_id } }];"
+            "return [{ json: { output, lead_id, derivar } }];"
         )
     }))
     add(nodo("Filter Tiene Lead", "n8n-nodes-base.filter", 2.2, (4540, 300), filtro([
@@ -453,8 +430,57 @@ def wf_chat(prompt, ids):
         "POST", "=" + BASE + "/api/v2/salesbot/run",
         "={{ JSON.stringify([{ bot_id: Number(" + CFG + ".salesbot_id), entity_id: Number($('Preparar Respuesta').first().json.lead_id), entity_type: 2 }]) }}")))
 
+    # --- Derivacion a asesor (rama paralela a la respuesta)
+    add(nodo("Filter Derivar", "n8n-nodes-base.filter", 2.2, (4540, 620), filtro([
+        cond_bool("d1", "={{ $json.derivar === true && !!$json.lead_id }}"),
+    ])))
+    add(pg(
+        "SELECT string_agg((message->>'type') || ': ' || (message->>'content'), E'\\n' ORDER BY id) AS convo\n"
+        "FROM (SELECT id, message FROM " + CHAT_HISTORY_TABLE + " WHERE session_id = $1 ORDER BY id DESC LIMIT 40) t;",
+        "={{ [" + MSG + ".chat_id] }}",
+        nombre="Get Historial", pos=(4760, 620), alwaysOutputData=True, onError="continueRegularOutput"))
+    add(nodo("Resumen IA", "n8n-nodes-base.httpRequest", 4.2, (4980, 620), {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": True,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: '" + MODELO + "', messages: ["
+                    "{ role: 'system', content: 'Sos asistente de admisiones de un instituto tecnico. Resumi esta conversacion de WhatsApp para que un asesor la retome sin leerla. "
+                    "Formato, una linea por dato y SOLO los que aparezcan: Nombre / Programa de interes / Horario preferido / Cumple requisitos (edad, escolaridad) / Financiamiento / Dudas pendientes / Contacto. Sin saludos ni relleno.' }, "
+                    "{ role: 'user', content: ($json.convo || 'sin historial') }] }) }}",
+        "options": {},
+    }, onError="continueRegularOutput"))
+    add(nodo("Get Etapas", "n8n-nodes-base.httpRequest", 4.2, (5200, 620), http_kommo(
+        "GET", "=" + BASE + "/api/v4/leads/pipelines/{{ $('Get Lead').first().json.pipeline_id }}/statuses"),
+        onError="continueRegularOutput", alwaysOutputData=True))
+    add(nodo("Armar Derivacion", "n8n-nodes-base.code", 2, (5420, 620), {"jsCode": (
+        "// Cada asesor tiene su embudo: se busca la etapa de derivacion POR NOMBRE dentro del embudo del lead.\n"
+        "const cfg = $('Config ITVM').first().json;\n"
+        "const norm = v => String(v || '').trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\n"
+        "const r = $('Resumen IA').first().json || {};\n"
+        "const resumen = String((r.choices && r.choices[0] && r.choices[0].message && r.choices[0].message.content) || 'Pidio hablar con un asesor (ver chat).').trim();\n"
+        "const etapas = (($input.first().json || {})._embedded || {}).statuses || [];\n"
+        "const etapa = etapas.find(e => norm(e.name) === norm(cfg.nombre_etapa_derivado));\n"
+        "const body = { tags_to_add: [{ name: cfg.tag_derivado }] };\n"
+        "if (etapa) body.status_id = etapa.id;\n"
+        "if (Number(cfg.campo_resumen_lead_id) > 0) body.custom_fields_values = [{ field_id: Number(cfg.campo_resumen_lead_id), values: [{ value: resumen }] }];\n"
+        "return [{ json: { body, nota: 'Derivado por el asistente IA de ITVM\\n' + resumen } }];"
+    )}))
+    add(nodo("Actualizar Lead", "n8n-nodes-base.httpRequest", 4.2, (5640, 620), http_kommo(
+        "PATCH", "=" + BASE + "/api/v4/leads/{{ " + MSG + ".element_id }}",
+        "={{ JSON.stringify($json.body) }}"), onError="continueRegularOutput"))
+    add(nodo("Agregar Nota", "n8n-nodes-base.httpRequest", 4.2, (5860, 620), http_kommo(
+        "POST", "=" + BASE + "/api/v4/leads/{{ " + MSG + ".element_id }}/notes",
+        "={{ JSON.stringify([{ note_type: 'common', params: { text: $('Armar Derivacion').first().json.nota } }]) }}"),
+        onError="continueRegularOutput"))
+
     # conexiones
     for a, b in [
+        ("Preparar Respuesta", "Filter Derivar"), ("Filter Derivar", "Get Historial"),
+        ("Get Historial", "Resumen IA"), ("Resumen IA", "Get Etapas"), ("Get Etapas", "Armar Derivacion"),
+        ("Armar Derivacion", "Actualizar Lead"), ("Actualizar Lead", "Agregar Nota"),
         ("Webhook Kommo", "Config ITVM"), ("Config ITVM", "Set Campos Mensaje"),
         ("Set Campos Mensaje", "Idempotencia"), ("Idempotencia", "Filter Mensaje Nuevo"),
         ("Filter Mensaje Nuevo", "Filter Mensaje Valido"), ("Filter Mensaje Valido", "Wait Inicial 2s"),
@@ -464,7 +490,7 @@ def wf_chat(prompt, ids):
         ("Download Audio", "Transcribir Audio"), ("Transcribir Audio", "Set Audio Text"),
         ("Set Audio Text", "Guardar en Buffer"), ("Set Text Content", "Guardar en Buffer"),
         ("Guardar en Buffer", "Wait Debounce"), ("Wait Debounce", "Reclamar Buffer"),
-        ("Reclamar Buffer", "Unir Mensajes"), ("Unir Mensajes", "Leer Instrucciones"), ("Leer Instrucciones", "Agente ITVM"),
+        ("Reclamar Buffer", "Unir Mensajes"), ("Unir Mensajes", "Leer Config"), ("Leer Config", "Agente ITVM"),
         ("Agente ITVM", "Preparar Respuesta"), ("Preparar Respuesta", "Filter Tiene Lead"),
         ("Filter Tiene Lead", "Guardar Respuesta en Lead"),
         ("Guardar Respuesta en Lead", "Wait Propagacion"), ("Wait Propagacion", "Run Salesbot"),
@@ -476,14 +502,13 @@ def wf_chat(prompt, ids):
     conectar(C, "Switch Tipo", "Set Text Content", 1)
     conectar(C, "OpenAI Chat Model", "Agente ITVM", tipo="ai_languageModel")
     conectar(C, "Postgres Chat Memory", "Agente ITVM", tipo="ai_memory")
-    for t in ["Consultar oferta academica", "Consultar informacion adicional", "Derivar a asesor"]:
-        conectar(C, t, "Agente ITVM", tipo="ai_tool")
+    conectar(C, "Buscar programas", "Agente ITVM", tipo="ai_tool")
 
-    return workflow("ITVM - Chat Kommo", N, C)
+    return workflow("ITVM - Chat", N, C)
 
 
 # ---------------------------------------------------------------------------
-# 2) Subworkflow: Consultar oferta academica
+# 2) Subworkflow: Busqueda (tool del agente)
 # ---------------------------------------------------------------------------
 JS_OFERTA = r"""
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -532,7 +557,7 @@ return [{ json: { ok: true, total: elegidos.length, programas: elegidos } }];
 """.strip()
 
 
-def wf_oferta():
+def wf_busqueda():
     N, C = [], {}
     N.append(trigger_subworkflow((0, 300), ["consulta"]))
     N.append(pg(
@@ -543,92 +568,11 @@ def wf_oferta():
     N.append(nodo("Buscar Programa", "n8n-nodes-base.code", 2, (440, 300), {"jsCode": JS_OFERTA}))
     conectar(C, "When Executed by Another Workflow", "Leer Programas")
     conectar(C, "Leer Programas", "Buscar Programa")
-    return workflow("ITVM - Consultar oferta academica", N, C)
+    return workflow("ITVM - Busqueda", N, C)
 
 
 # ---------------------------------------------------------------------------
-# 3) Subworkflow: Consultar info adicional
-# ---------------------------------------------------------------------------
-def wf_info():
-    N, C = [], {}
-    N.append(trigger_subworkflow((0, 300), ["tema"]))
-    N.append(pg(
-        "SELECT notas_adicionales, actualizado_en FROM crm.itvm_bot_config WHERE id = 1;",
-        nombre="Leer Info Adicional", pos=(220, 300), alwaysOutputData=True, onError="continueRegularOutput"))
-    N.append(nodo("Formatear Info", "n8n-nodes-base.code", 2, (440, 300), {"jsCode": (
-        "const j = $input.first().json || {};\n"
-        "const texto = String(j.notas_adicionales || '').trim();\n"
-        "if (!texto) {\n"
-        "  return [{ json: { ok: false, nota: 'No hay informacion adicional cargada. No inventes precios ni fechas: ofrece que un asesor lo confirme.' } }];\n"
-        "}\n"
-        "return [{ json: { ok: true, actualizado_en: j.actualizado_en, informacion: texto.slice(0, 15000) } }];"
-    )}))
-    conectar(C, "When Executed by Another Workflow", "Leer Info Adicional")
-    conectar(C, "Leer Info Adicional", "Formatear Info")
-    return workflow("ITVM - Consultar info adicional", N, C)
-
-
-# ---------------------------------------------------------------------------
-# 4) Subworkflow: Derivar a asesor
-# ---------------------------------------------------------------------------
-def wf_derivar():
-    N, C = [], {}
-    entradas = ["nombre", "programa", "horario_preferido", "financiamiento", "resumen",
-                "lead_id", "kommo_base_url", "pipeline_id", "nombre_etapa_derivado", "tag_derivado",
-                "campo_resumen_lead_id"]
-    N.append(trigger_subworkflow((0, 300), entradas))
-    # Cada asesor tiene su embudo: se busca la etapa de derivacion POR NOMBRE dentro del embudo del lead.
-    N.append(nodo("Get Etapas", "n8n-nodes-base.httpRequest", 4.2, (220, 300), http_kommo(
-        "GET", "={{ String($json.kommo_base_url).replace(/\\/$/, '') }}/api/v4/leads/pipelines/{{ $json.pipeline_id }}/statuses"),
-        onError="continueRegularOutput", alwaysOutputData=True))
-    N.append(nodo("Armar Cambios", "n8n-nodes-base.code", 2, (440, 300), {"jsCode": (
-        "const i = $('When Executed by Another Workflow').first().json;\n"
-        "const limpio = v => String(v || '').trim();\n"
-        "const norm = v => limpio(v).toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\n"
-        "const body = { tags_to_add: [{ name: limpio(i.tag_derivado) || 'ITVM-derivado' }] };\n"
-        "const etapas = (($input.first().json || {})._embedded || {}).statuses || [];\n"
-        "const etapa = etapas.find(e => norm(e.name) === norm(i.nombre_etapa_derivado));\n"
-        "if (etapa) body.status_id = etapa.id;\n"
-        "const campoResumen = Number(i.campo_resumen_lead_id) || 0;\n"
-        "const textoResumen = [limpio(i.programa) && ('Programa: ' + limpio(i.programa)), limpio(i.horario_preferido) && ('Horario: ' + limpio(i.horario_preferido)), limpio(i.financiamiento) && ('Financiamiento: ' + limpio(i.financiamiento)), limpio(i.resumen)].filter(Boolean).join('\\n');\n"
-        "if (campoResumen > 0 && textoResumen) body.custom_fields_values = [{ field_id: campoResumen, values: [{ value: textoResumen }] }];\n"
-        "const lineas = [\n"
-        "  'Derivado por el asistente IA de ITVM',\n"
-        "  limpio(i.nombre) && ('Nombre: ' + limpio(i.nombre)),\n"
-        "  limpio(i.programa) && ('Programa: ' + limpio(i.programa)),\n"
-        "  limpio(i.horario_preferido) && ('Horario preferido: ' + limpio(i.horario_preferido)),\n"
-        "  limpio(i.financiamiento) && ('Financiamiento: ' + limpio(i.financiamiento)),\n"
-        "  limpio(i.resumen) && ('Resumen:\\n' + limpio(i.resumen)),\n"
-        "].filter(Boolean);\n"
-        "const base = limpio(i.kommo_base_url).replace(/\\/$/, '');\n"
-        "return [{ json: { base, lead_id: limpio(i.lead_id), body, nota: lineas.join('\\n') } }];"
-    )}))
-    N.append(nodo("Actualizar Lead", "n8n-nodes-base.httpRequest", 4.2, (660, 300), http_kommo(
-        "PATCH", "={{ $json.base }}/api/v4/leads/{{ $json.lead_id }}",
-        "={{ JSON.stringify($json.body) }}"), onError="continueErrorOutput"))
-    N.append(nodo("Agregar Nota", "n8n-nodes-base.httpRequest", 4.2, (880, 200), http_kommo(
-        "POST", "={{ $('Armar Cambios').first().json.base }}/api/v4/leads/{{ $('Armar Cambios').first().json.lead_id }}/notes",
-        "={{ JSON.stringify([{ note_type: 'common', params: { text: $('Armar Cambios').first().json.nota } }]) }}"),
-        onError="continueRegularOutput"))
-    N.append(nodo("Resultado OK", "n8n-nodes-base.set", 3.4, (1100, 200), asignaciones([
-        ("ok", "true", "boolean"),
-        ("mensaje", "Listo: el lead quedo derivado a un asesor. Despedite confirmando que un asesor le contacta y el horario de atencion.", "string"),
-    ])))
-    N.append(nodo("Resultado Error", "n8n-nodes-base.set", 3.4, (880, 420), asignaciones([
-        ("ok", "false", "boolean"),
-        ("mensaje", "No se pudo registrar la derivacion en el CRM. Igual decile a la persona que un asesor le contacta, sin mencionar el error.", "string"),
-    ])))
-    conectar(C, "When Executed by Another Workflow", "Get Etapas")
-    conectar(C, "Get Etapas", "Armar Cambios")
-    conectar(C, "Armar Cambios", "Actualizar Lead")
-    conectar(C, "Actualizar Lead", "Agregar Nota", 0)
-    conectar(C, "Actualizar Lead", "Resultado Error", 1)
-    conectar(C, "Agregar Nota", "Resultado OK")
-    return workflow("ITVM - Derivar a asesor", N, C)
-
-
-# ---------------------------------------------------------------------------
-# 5) Sync Planilla, 1 vez por dia a las 6 am de Costa Rica (Google Sheets -> itvm_bot_config + itvm_programas) + limpieza
+# 3) Actualizar: 1 vez por dia a las 6 am de Costa Rica (Google Sheets -> itvm_bot_config + itvm_programas) + limpieza
 # ---------------------------------------------------------------------------
 SHEET_ID = "1YZqpfdGdRLp2OH683OvN3NZUjd0D_N27"
 # ID del Google Doc "ITVM - Instrucciones del asistente" (debe estar guardado como Documento de Google,
@@ -843,10 +787,21 @@ SELECT (SELECT count(*) FROM actualizados) AS actualizados,
 """.strip()
 
 
-def wf_sync_planilla():
+def sql_preparar_base():
+    """Esquema + programas iniciales SOLO si no existen (no pisa lo que vino de la planilla)."""
+    esquema = (RAIZ / "sql" / "001_esquema.sql").read_text(encoding="utf-8")
+    seed = (RAIZ / "sql" / "002_programas_seed.sql").read_text(encoding="utf-8")
+    seed = seed[:seed.index("ON CONFLICT (slug) DO UPDATE SET")] + "ON CONFLICT (slug) DO NOTHING;\n"
+    return esquema + "\n\n" + seed
+
+
+def wf_actualizar():
     N, C = [], {}
-    N.append(nodo("Todos los dias 6am", "n8n-nodes-base.scheduleTrigger", 1.2, (0, 300),
+    N.append(nodo("Todos los dias 6am", "n8n-nodes-base.scheduleTrigger", 1.2, (-440, 200),
                   {"rule": {"interval": [{"field": "cronExpression", "expression": "0 6 * * *"}]}}))
+    N.append(nodo("Ejecutar ahora", "n8n-nodes-base.manualTrigger", 1, (-440, 420), {}))
+    # Crea las tablas si no existen (la primera vez) y carga los programas iniciales que falten.
+    N.append(pg(sql_preparar_base(), nombre="Preparar Base", pos=(-220, 300)))
     N.append(nodo("Config Sync", "n8n-nodes-base.set", 3.4, (110, 300), asignaciones([
         ("sheet_id", SHEET_ID, "string"),
         ("doc_id", DOC_ID, "string"),
@@ -888,7 +843,9 @@ def wf_sync_planilla():
         "DELETE FROM crm.itvm_buffer WHERE creado_en < now() - interval '7 days';\n"
         "DELETE FROM crm.itvm_processed_messages WHERE creado_en < now() - interval '30 days';",
         nombre="Limpiar Tablas", pos=(220, 520)))
-    conectar(C, "Todos los dias 6am", "Config Sync")
+    conectar(C, "Todos los dias 6am", "Preparar Base")
+    conectar(C, "Ejecutar ahora", "Preparar Base")
+    conectar(C, "Preparar Base", "Config Sync")
     conectar(C, "Config Sync", "Hojas")
     # --- Documento de instrucciones (Google Doc)
     N.append(nodo("Leer Documento", "n8n-nodes-base.httpRequest", 4.2, (330, 740), {
@@ -911,52 +868,30 @@ def wf_sync_planilla():
     conectar(C, "Leer Documento", "Extraer Texto Documento")
     conectar(C, "Extraer Texto Documento", "Filter Documento OK")
     conectar(C, "Filter Documento OK", "Guardar Instrucciones")
-    conectar(C, "Todos los dias 6am", "Limpiar Tablas")
+    conectar(C, "Preparar Base", "Limpiar Tablas")
     conectar(C, "Hojas", "Leer Hoja")
     conectar(C, "Leer Hoja", "Procesar Planilla")
     conectar(C, "Procesar Planilla", "Filter Planilla OK")
     conectar(C, "Filter Planilla OK", "Guardar Info")
     conectar(C, "Guardar Info", "Filter Hay Programas")
     conectar(C, "Filter Hay Programas", "Guardar Programas")
-    w = workflow("ITVM - Sync Planilla", N, C)
+    w = workflow("ITVM - Actualizar", N, C)
     w["settings"]["timezone"] = "America/Costa_Rica"
     return w
 
 
-# ---------------------------------------------------------------------------
-# 6) Setup DB: crea las tablas y carga los programas (se ejecuta una vez a mano)
-# ---------------------------------------------------------------------------
-def wf_setup_db():
-    sql = "\n\n".join((RAIZ / "sql" / f).read_text(encoding="utf-8")
-                       for f in ["001_esquema.sql", "002_programas_seed.sql"])
-    N, C = [], {}
-    N.append(nodo("Ejecutar una vez", "n8n-nodes-base.manualTrigger", 1, (0, 300), {}))
-    N.append(pg(sql, nombre="Crear Tablas y Programas", pos=(220, 300)))
-    N.append(pg(
-        "SELECT (SELECT count(*) FROM crm.itvm_programas) AS programas,\n"
-        "       (SELECT count(*) FROM crm.itvm_bot_config) AS config,\n"
-        "       to_regclass('crm.itvm_buffer') IS NOT NULL AS buffer_ok,\n"
-        "       to_regclass('crm.itvm_processed_messages') IS NOT NULL AS idempotencia_ok;",
-        nombre="Verificar", pos=(440, 300)))
-    conectar(C, "Ejecutar una vez", "Crear Tablas y Programas")
-    conectar(C, "Crear Tablas y Programas", "Verificar")
-    return workflow("ITVM - Setup DB", N, C)
-
-
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--id-oferta", default="")
-    ap.add_argument("--id-info", default="")
-    ap.add_argument("--id-derivar", default="")
+    ap.add_argument("--id-busqueda", default="", help='ID del workflow "ITVM - Busqueda" en n8n')
     a = ap.parse_args()
 
     prompt = (RAIZ / "prompts" / "agente-itvm.md").read_text(encoding="utf-8").strip()
     if "{{" in prompt or "}}" in prompt:
         raise SystemExit("El prompt no puede contener '{{' ni '}}' (n8n lo interpretaria como expresion).")
 
-    ids = {"oferta": a.id_oferta, "info": a.id_info, "derivar": a.id_derivar}
+    ids = {"busqueda": a.id_busqueda}
     SALIDA.mkdir(exist_ok=True)
-    for wf in [wf_chat(prompt, ids), wf_oferta(), wf_info(), wf_derivar(), wf_sync_planilla(), wf_setup_db()]:
+    for wf in [wf_chat(prompt, ids), wf_busqueda(), wf_actualizar()]:
         destino = SALIDA / (wf["name"] + ".json")
         destino.write_text(json.dumps(wf, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print("generado:", destino.relative_to(RAIZ))
