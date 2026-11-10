@@ -17,7 +17,7 @@ const h2 = (text) => new Paragraph({ heading: HeadingLevel.HEADING_2, children: 
 const contenido = [
   new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun('ITVM — Instrucciones del asistente virtual')] }),
   new Paragraph({ spacing: { after: 240 }, border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '1F3864', space: 4 } }, children: [
-    new TextRun({ text: 'El asistente de WhatsApp lee este documento cada 2 horas y sigue lo que dice. Escriban en lenguaje simple, como se lo explicarían a alguien nuevo en admisiones. Los precios, horarios, programas y promociones NO van acá: van en la planilla "ITVM - Planilla asistente virtual". Los textos en gris son ejemplos o ayudas: reemplácenlos o bórrenlos.', font: F, size: 20, italics: true })] }),
+    new TextRun({ text: 'El asistente de WhatsApp lee este documento una vez por día (a las 6:00 a.m.) y sigue lo que dice. Lo que cambien hoy se aplica desde mañana temprano. Escriban en lenguaje simple, como se lo explicarían a alguien nuevo en admisiones. Los precios, horarios, programas y promociones NO van acá: van en la planilla "ITVM - Planilla asistente virtual". Los textos en gris son ejemplos o ayudas: reemplácenlos o bórrenlos.', font: F, size: 20, italics: true })] }),
 
   h1('1. Nombre y presentación'),
   campo('Nombre del asistente', 'Sofía'),

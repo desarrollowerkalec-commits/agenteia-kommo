@@ -628,7 +628,7 @@ def wf_derivar():
 
 
 # ---------------------------------------------------------------------------
-# 5) Sync Planilla (Google Sheets -> itvm_bot_config + itvm_programas) + limpieza
+# 5) Sync Planilla, 1 vez por dia a las 6 am de Costa Rica (Google Sheets -> itvm_bot_config + itvm_programas) + limpieza
 # ---------------------------------------------------------------------------
 SHEET_ID = "1YZqpfdGdRLp2OH683OvN3NZUjd0D_N27"
 # ID del Google Doc "ITVM - Instrucciones del asistente" (debe estar guardado como Documento de Google,
@@ -840,8 +840,8 @@ SELECT (SELECT count(*) FROM actualizados) AS actualizados,
 
 def wf_sync_planilla():
     N, C = [], {}
-    N.append(nodo("Cada 2 horas", "n8n-nodes-base.scheduleTrigger", 1.2, (0, 300),
-                  {"rule": {"interval": [{"field": "cronExpression", "expression": "0 6-22/2 * * *"}]}}))
+    N.append(nodo("Todos los dias 6am", "n8n-nodes-base.scheduleTrigger", 1.2, (0, 300),
+                  {"rule": {"interval": [{"field": "cronExpression", "expression": "0 6 * * *"}]}}))
     N.append(nodo("Config Sync", "n8n-nodes-base.set", 3.4, (110, 300), asignaciones([
         ("sheet_id", SHEET_ID, "string"),
         ("doc_id", DOC_ID, "string"),
@@ -883,7 +883,7 @@ def wf_sync_planilla():
         "DELETE FROM crm.itvm_buffer WHERE creado_en < now() - interval '7 days';\n"
         "DELETE FROM crm.itvm_processed_messages WHERE creado_en < now() - interval '30 days';",
         nombre="Limpiar Tablas", pos=(220, 520)))
-    conectar(C, "Cada 2 horas", "Config Sync")
+    conectar(C, "Todos los dias 6am", "Config Sync")
     conectar(C, "Config Sync", "Hojas")
     # --- Documento de instrucciones (Google Doc)
     N.append(nodo("Leer Documento", "n8n-nodes-base.httpRequest", 4.2, (330, 740), {
@@ -905,7 +905,7 @@ def wf_sync_planilla():
     conectar(C, "Leer Documento", "Extraer Texto Documento")
     conectar(C, "Extraer Texto Documento", "Filter Documento OK")
     conectar(C, "Filter Documento OK", "Guardar Instrucciones")
-    conectar(C, "Cada 2 horas", "Limpiar Tablas")
+    conectar(C, "Todos los dias 6am", "Limpiar Tablas")
     conectar(C, "Hojas", "Leer Hoja")
     conectar(C, "Leer Hoja", "Procesar Planilla")
     conectar(C, "Procesar Planilla", "Filter Planilla OK")

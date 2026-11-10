@@ -83,7 +83,7 @@ Falta configurar el **webhook**: Ajustes → Integraciones → Webhooks → even
 
 Google Sheet: `https://docs.google.com/spreadsheets/d/1YZqpfdGdRLp2OH683OvN3NZUjd0D_N27` (compartida como "cualquier persona con el enlace puede ver").
 
-El workflow **"ITVM - Sync Planilla"** la lee cada 2 horas, de 6 a 22 h (hora de Costa Rica):
+El workflow **"ITVM - Sync Planilla"** la lee **una vez por día, a las 6:00 a.m.** (hora de Costa Rica). Para aplicar un cambio en el momento, se ejecuta el workflow a mano en n8n.
 
 | Pestaña | Va a | Qué ignora |
 |---|---|---|
@@ -101,7 +101,7 @@ El workflow **"ITVM - Sync Planilla"** la lee cada 2 horas, de 6 a 22 h (hora de
 3. Compartir → **cualquier persona con el enlace puede ver**.
 4. Copiá el ID de la URL (`docs.google.com/document/d/ESTE_ID/edit`) y pegalo en el nodo **Config Sync** del workflow "ITVM - Sync Planilla" (campo `doc_id`).
 
-El sync lo lee cada 2 horas y lo guarda en `crm.itvm_bot_config.instrucciones`. El agente lo recibe en cada mensaje como "INSTRUCCIONES DEL NEGOCIO".
+El sync lo lee una vez por día (6:00 a.m.) y lo guarda en `crm.itvm_bot_config.instrucciones`. El agente lo recibe en cada mensaje como "INSTRUCCIONES DEL NEGOCIO".
 - Los ejemplos entre paréntesis que no se completaron, como "(Completar)" o "(Ejemplo: …)", se descartan solos.
 - Si el documento no se puede leer, se mantiene la última versión buena.
 - Las **reglas fijas** de `prompts/agente-itvm.md` siempre mandan sobre el documento: no inventar precios, usar las herramientas, no armar links, no pedir datos sensibles.

@@ -7,13 +7,13 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "0 6-22/2 * * *"
+              "expression": "0 6 * * *"
             }
           ]
         }
       },
       "id": "c310914e-bf01-5b20-adaf-bfbf93341031",
-      "name": "Cada 2 horas",
+      "name": "Todos los dias 6am",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
@@ -328,7 +328,7 @@
     }
   ],
   "connections": {
-    "Cada 2 horas": {
+    "Todos los dias 6am": {
       "main": [
         [
           {

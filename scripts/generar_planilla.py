@@ -86,7 +86,7 @@ filas = [
  ('5. Promociones', 'Descuentos o becas vigentes. Ponga fecha "hasta" para que se desactiven solas.'),
  ('6. Preguntas frecuentes', 'Preguntas que les hacen seguido y cómo quieren que se respondan.'),
  (None, None),
- ('CUÁNDO SE ACTUALIZA', 'El asistente lee esta planilla cada 2 horas (de 6 a.m. a 10 p.m.). Los cambios se reflejan en ese plazo.'),
+ ('CUÁNDO SE ACTUALIZA', 'El asistente lee esta planilla una vez por día, a las 6:00 a.m. Lo que se cambie hoy se aplica desde mañana temprano.'),
  ('DUDAS', 'Escríbale a su contacto de soporte del asistente.'),
 ]
 r = 4
