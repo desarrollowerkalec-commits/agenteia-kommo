@@ -79,10 +79,11 @@ Los dos scripts se pueden volver a correr sin problema. Para cambiar un programa
 
      | Campo | Valor |
      |---|---|
-     | `kommo_base_url` | `https://TUSUBDOMINIO.kommo.com` |
+     | `kommo_base_url` | `https://dwcorporativoitvm.kommo.com` (ya cargado) |
      | `tag_derivado` | nombre de la etiqueta de derivado (por defecto `ITVM-derivado`) |
      | `status_derivado_id`, `pipeline_id` | IDs del paso 2.4 (0 = no mover de etapa) |
      | `campo_respuesta_contacto_id` | ID del campo del paso 2.2 |
+     | `campo_resumen_lead_id` | campo del lead donde se guarda el resumen al derivar (0 = solo nota) |
      | `salesbot_id` | ID del paso 2.3 |
      | `segundos_debounce` | espera para juntar mensajes seguidos (8 s) |
 

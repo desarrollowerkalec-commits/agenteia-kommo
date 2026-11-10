@@ -24,7 +24,7 @@
             {
               "id": "3c602e1b-9e7e-5d37-99dd-16de54f2ce5c",
               "name": "kommo_base_url",
-              "value": "https://SUBDOMINIO.kommo.com",
+              "value": "https://dwcorporativoitvm.kommo.com",
               "type": "string"
             },
             {
@@ -48,17 +48,23 @@
             {
               "id": "39cb6458-6b4a-5c24-acb0-332a9cf1d2e7",
               "name": "campo_respuesta_contacto_id",
-              "value": 0,
+              "value": 3929118,
               "type": "number"
             },
             {
               "id": "9cb2c9b6-3338-572b-95ff-283cd7dadb9f",
+              "name": "campo_resumen_lead_id",
+              "value": 3929120,
+              "type": "number"
+            },
+            {
+              "id": "b45e63c1-442a-5ff5-a36b-b3aa030fe88a",
               "name": "salesbot_id",
               "value": 0,
               "type": "number"
             },
             {
-              "id": "b45e63c1-442a-5ff5-a36b-b3aa030fe88a",
+              "id": "eee2439b-1408-514c-89b5-c6c751a6c14e",
               "name": "segundos_debounce",
               "value": 8,
               "type": "number"
@@ -68,7 +74,7 @@
         "options": {},
         "includeOtherFields": true
       },
-      "id": "eee2439b-1408-514c-89b5-c6c751a6c14e",
+      "id": "225a0556-ec60-5c37-82a1-a55dc3ad2300",
       "name": "Config ITVM",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -82,61 +88,61 @@
         "assignments": {
           "assignments": [
             {
-              "id": "225a0556-ec60-5c37-82a1-a55dc3ad2300",
+              "id": "315144c7-1cdc-5a85-886d-a71a6b1002f7",
               "name": "message_id",
               "value": "={{ $json.body['message[add][0][id]'] }}",
               "type": "string"
             },
             {
-              "id": "315144c7-1cdc-5a85-886d-a71a6b1002f7",
+              "id": "f735b509-c5f2-5e5d-afaa-3c29021e6f4d",
               "name": "chat_id",
               "value": "={{ $json.body['message[add][0][chat_id]'] }}",
               "type": "string"
             },
             {
-              "id": "f735b509-c5f2-5e5d-afaa-3c29021e6f4d",
+              "id": "71a9891d-badc-5fb5-8422-2250806a9fc0",
               "name": "element_id",
               "value": "={{ $json.body['message[add][0][element_id]'] }}",
               "type": "string"
             },
             {
-              "id": "71a9891d-badc-5fb5-8422-2250806a9fc0",
+              "id": "7ddbcef1-1c2c-5e4d-868a-8d22d9d43980",
               "name": "element_type",
               "value": "={{ $json.body['message[add][0][element_type]'] || '' }}",
               "type": "string"
             },
             {
-              "id": "7ddbcef1-1c2c-5e4d-868a-8d22d9d43980",
+              "id": "7df6d2af-94e6-56ff-b719-1e910f359660",
               "name": "contact_id",
               "value": "={{ $json.body['message[add][0][contact_id]'] || '' }}",
               "type": "string"
             },
             {
-              "id": "7df6d2af-94e6-56ff-b719-1e910f359660",
+              "id": "f7531fab-b9d7-5b3c-84d1-c07712942fbc",
               "name": "text",
               "value": "={{ $json.body['message[add][0][text]'] || '' }}",
               "type": "string"
             },
             {
-              "id": "f7531fab-b9d7-5b3c-84d1-c07712942fbc",
+              "id": "391c9437-5904-5424-8584-3c66dffcf26d",
               "name": "attachment_type",
               "value": "={{ $json.body['message[add][0][attachment][type]'] || 'text' }}",
               "type": "string"
             },
             {
-              "id": "391c9437-5904-5424-8584-3c66dffcf26d",
+              "id": "1e12179f-b41d-5277-9f99-6f190b702dea",
               "name": "attachment_link",
               "value": "={{ $json.body['message[add][0][attachment][link]'] || '' }}",
               "type": "string"
             },
             {
-              "id": "1e12179f-b41d-5277-9f99-6f190b702dea",
+              "id": "86c4facd-ce47-5e88-8c3a-43d6d86c2212",
               "name": "author_name",
               "value": "={{ $json.body['message[add][0][author][name]'] || '' }}",
               "type": "string"
             },
             {
-              "id": "86c4facd-ce47-5e88-8c3a-43d6d86c2212",
+              "id": "0980a541-fe28-5695-8608-769eded7ba03",
               "name": "author_type",
               "value": "={{ $json.body['message[add][0][author][type]'] || 'customer' }}",
               "type": "string"
@@ -145,7 +151,7 @@
         },
         "options": {}
       },
-      "id": "0980a541-fe28-5695-8608-769eded7ba03",
+      "id": "f697303b-26ff-55f2-97c5-e9525b3a3acb",
       "name": "Set Campos Mensaje",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -162,7 +168,7 @@
           "queryReplacement": "={{ [$('Set Campos Mensaje').first().json.message_id, $('Set Campos Mensaje').first().json.chat_id] }}"
         }
       },
-      "id": "f697303b-26ff-55f2-97c5-e9525b3a3acb",
+      "id": "33ff7bb2-6860-5ac9-a0a3-17a47888bcef",
       "name": "Idempotencia",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -196,7 +202,7 @@
         },
         "options": {}
       },
-      "id": "33ff7bb2-6860-5ac9-a0a3-17a47888bcef",
+      "id": "0ebf4b31-61fc-52e1-9585-992d16d7a00a",
       "name": "Filter Mensaje Nuevo",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
@@ -260,7 +266,7 @@
         },
         "options": {}
       },
-      "id": "0ebf4b31-61fc-52e1-9585-992d16d7a00a",
+      "id": "54a08d7d-b7d6-5b91-b24a-eb1949c73f02",
       "name": "Filter Mensaje Valido",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
@@ -274,7 +280,7 @@
         "amount": 2,
         "unit": "seconds"
       },
-      "id": "17b97750-0be6-5b94-9191-85d577678b40",
+      "id": "6b0e39df-484a-545f-8ae7-7752c36941ab",
       "name": "Wait Inicial 2s",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
@@ -282,7 +288,7 @@
         1320,
         300
       ],
-      "webhookId": "54a08d7d-b7d6-5b91-b24a-eb1949c73f02"
+      "webhookId": "17b97750-0be6-5b94-9191-85d577678b40"
     },
     {
       "parameters": {
@@ -306,7 +312,7 @@
           ]
         }
       },
-      "id": "6b0e39df-484a-545f-8ae7-7752c36941ab",
+      "id": "434df2f4-3591-53df-ba77-b3b6109efdf3",
       "name": "Get Lead",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -340,7 +346,7 @@
         },
         "options": {}
       },
-      "id": "434df2f4-3591-53df-ba77-b3b6109efdf3",
+      "id": "40c08c5a-3cbb-53dd-8278-70fc16b0d34a",
       "name": "Filter Bot Activo",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
@@ -384,7 +390,7 @@
           "renameFallbackOutput": "normal"
         }
       },
-      "id": "40c08c5a-3cbb-53dd-8278-70fc16b0d34a",
+      "id": "ab6b0998-9979-5baf-90e7-bfdb87b01a89",
       "name": "Switch /reset",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
@@ -401,7 +407,7 @@
           "queryReplacement": "={{ [$('Set Campos Mensaje').first().json.chat_id] }}"
         }
       },
-      "id": "ab6b0998-9979-5baf-90e7-bfdb87b01a89",
+      "id": "67fc7bff-fd13-51be-a582-b04e7f7858e6",
       "name": "Reset Memoria",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -415,7 +421,7 @@
         "assignments": {
           "assignments": [
             {
-              "id": "67fc7bff-fd13-51be-a582-b04e7f7858e6",
+              "id": "0602ffea-f957-5631-9791-c7a233d6e335",
               "name": "output",
               "value": "Listo, reinicié la conversación. ¿En qué le puedo ayudar?",
               "type": "string"
@@ -424,7 +430,7 @@
         },
         "options": {}
       },
-      "id": "0602ffea-f957-5631-9791-c7a233d6e335",
+      "id": "b34d3ff6-36c5-50b1-98da-6d27795e9620",
       "name": "Set Output Reset",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -469,7 +475,7 @@
           "renameFallbackOutput": "texto"
         }
       },
-      "id": "b34d3ff6-36c5-50b1-98da-6d27795e9620",
+      "id": "3890c14c-8707-5581-9e19-abb189a8eda0",
       "name": "Switch Tipo",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
@@ -489,7 +495,7 @@
           }
         }
       },
-      "id": "3890c14c-8707-5581-9e19-abb189a8eda0",
+      "id": "8ce6c6d8-ca6f-50ac-9f66-8bbfd79a60fa",
       "name": "Download Audio",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -506,7 +512,7 @@
           "language": "es"
         }
       },
-      "id": "8ce6c6d8-ca6f-50ac-9f66-8bbfd79a60fa",
+      "id": "759d0351-6ec0-5910-af2d-01db993c53e3",
       "name": "Transcribir Audio",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.8,
@@ -521,7 +527,7 @@
         "assignments": {
           "assignments": [
             {
-              "id": "759d0351-6ec0-5910-af2d-01db993c53e3",
+              "id": "00403ede-6e5a-580b-9313-b1d6cefc7df4",
               "name": "content",
               "value": "={{ ($json.text || '').trim() || '[El cliente envió un audio que no se pudo transcribir]' }}",
               "type": "string"
@@ -530,7 +536,7 @@
         },
         "options": {}
       },
-      "id": "00403ede-6e5a-580b-9313-b1d6cefc7df4",
+      "id": "f4c38b10-82ac-54c6-9c6e-7b0b3a0074a0",
       "name": "Set Audio Text",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -544,7 +550,7 @@
         "assignments": {
           "assignments": [
             {
-              "id": "f4c38b10-82ac-54c6-9c6e-7b0b3a0074a0",
+              "id": "97f74815-c94e-57af-85df-626b9017c1c5",
               "name": "content",
               "value": "={{ ($('Set Campos Mensaje').first().json.text || '').trim() || ('[El cliente envió un archivo de tipo ' + $('Set Campos Mensaje').first().json.attachment_type + ' sin texto]') }}",
               "type": "string"
@@ -553,7 +559,7 @@
         },
         "options": {}
       },
-      "id": "97f74815-c94e-57af-85df-626b9017c1c5",
+      "id": "3f783b05-70df-596c-a09c-241c9bfa6891",
       "name": "Set Text Content",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -570,7 +576,7 @@
           "queryReplacement": "={{ [$('Set Campos Mensaje').first().json.message_id, $('Set Campos Mensaje').first().json.chat_id, $json.content] }}"
         }
       },
-      "id": "3f783b05-70df-596c-a09c-241c9bfa6891",
+      "id": "cc7fdb12-bf43-5f1a-9312-2be630a01edb",
       "name": "Guardar en Buffer",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -584,7 +590,7 @@
         "amount": "={{ $('Config ITVM').first().json.segundos_debounce }}",
         "unit": "seconds"
       },
-      "id": "a4e8328d-3dca-56e2-8ee0-9fc28ef872e1",
+      "id": "24763c95-9f43-5535-b675-822ff5a72852",
       "name": "Wait Debounce",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
@@ -592,7 +598,7 @@
         3300,
         400
       ],
-      "webhookId": "cc7fdb12-bf43-5f1a-9312-2be630a01edb"
+      "webhookId": "a4e8328d-3dca-56e2-8ee0-9fc28ef872e1"
     },
     {
       "parameters": {
@@ -602,7 +608,7 @@
           "queryReplacement": "={{ [$('Set Campos Mensaje').first().json.message_id, $('Set Campos Mensaje').first().json.chat_id] }}"
         }
       },
-      "id": "24763c95-9f43-5535-b675-822ff5a72852",
+      "id": "33841a8c-e4fc-54c4-a13c-c040b2219e39",
       "name": "Reclamar Buffer",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -615,7 +621,7 @@
       "parameters": {
         "jsCode": "// Si esta ejecucion no era la del ultimo mensaje, no llegan filas y se corta.\nconst filas = $input.all().map(i => i.json).filter(j => j && j.id && j.content);\nif (filas.length === 0) return [];\nfilas.sort((a, b) => Number(a.id) - Number(b.id));\nconst chat_input = filas.map(f => String(f.content).trim()).filter(Boolean).join('\\n');\nreturn [{ json: { chat_input } }];"
       },
-      "id": "33841a8c-e4fc-54c4-a13c-c040b2219e39",
+      "id": "5b22b58e-13c0-5675-a950-c23d23377153",
       "name": "Unir Mensajes",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -633,7 +639,7 @@
           "maxIterations": 8
         }
       },
-      "id": "5b22b58e-13c0-5675-a950-c23d23377153",
+      "id": "3d147d9f-621d-50ea-8198-30550ce31f33",
       "name": "Agente ITVM",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.9,
@@ -654,7 +660,7 @@
           "temperature": 0.4
         }
       },
-      "id": "3d147d9f-621d-50ea-8198-30550ce31f33",
+      "id": "8b800024-e1c0-5e5d-aaf2-06389e4c0af8",
       "name": "OpenAI Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
@@ -673,7 +679,7 @@
         "tableName": "itvm_chat_histories",
         "contextWindowLength": 20
       },
-      "id": "8b800024-e1c0-5e5d-aaf2-06389e4c0af8",
+      "id": "682f3360-290e-52fd-8ac9-1349ec5b7385",
       "name": "Postgres Chat Memory",
       "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
       "typeVersion": 1.3,
@@ -712,7 +718,7 @@
           "convertFieldsToString": false
         }
       },
-      "id": "682f3360-290e-52fd-8ac9-1349ec5b7385",
+      "id": "1b67179c-4152-588a-9c47-66cfa5107136",
       "name": "Consultar oferta academica",
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
@@ -751,7 +757,7 @@
           "convertFieldsToString": false
         }
       },
-      "id": "1b67179c-4152-588a-9c47-66cfa5107136",
+      "id": "d638f195-c0ec-53c2-9d5b-054d52a8f944",
       "name": "Consultar informacion adicional",
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
@@ -781,7 +787,8 @@
             "kommo_base_url": "={{ $('Config ITVM').first().json.kommo_base_url }}",
             "status_derivado_id": "={{ $('Config ITVM').first().json.status_derivado_id }}",
             "pipeline_id": "={{ $('Config ITVM').first().json.pipeline_id }}",
-            "tag_derivado": "={{ $('Config ITVM').first().json.tag_derivado }}"
+            "tag_derivado": "={{ $('Config ITVM').first().json.tag_derivado }}",
+            "campo_resumen_lead_id": "={{ $('Config ITVM').first().json.campo_resumen_lead_id }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -874,13 +881,22 @@
               "display": true,
               "canBeUsedToMatch": true,
               "type": "string"
+            },
+            {
+              "id": "campo_resumen_lead_id",
+              "displayName": "campo_resumen_lead_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
             }
           ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         }
       },
-      "id": "d638f195-c0ec-53c2-9d5b-054d52a8f944",
+      "id": "31d69fdc-e316-59e1-852e-9fba0640347a",
       "name": "Derivar a asesor",
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
@@ -893,7 +909,7 @@
       "parameters": {
         "jsCode": "const lead = $('Get Lead').first().json || {};\nconst contactos = (lead._embedded && lead._embedded.contacts) || [];\nconst principal = contactos.find(c => c.is_main) || contactos[0];\nconst contact_id = (principal && principal.id) || Number($('Set Campos Mensaje').first().json.contact_id) || null;\nlet output = String($json.output || '').trim();\nif (!output) return [];\n// Kommo/WhatsApp no renderizan markdown de titulos ni negritas dobles.\noutput = output.replace(/\\*\\*(.+?)\\*\\*/g, '*$1*').replace(/^#+\\s*/gm, '');\nreturn [{ json: { output, contact_id } }];"
       },
-      "id": "31d69fdc-e316-59e1-852e-9fba0640347a",
+      "id": "4d248811-cfcc-5ca1-a868-52b35caee812",
       "name": "Preparar Respuesta",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -927,7 +943,7 @@
         },
         "options": {}
       },
-      "id": "4d248811-cfcc-5ca1-a868-52b35caee812",
+      "id": "ab94c156-df4d-53d4-b1ae-0540679b4b81",
       "name": "Filter Tiene Contacto",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
@@ -953,7 +969,7 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ custom_fields_values: [{ field_id: Number($('Config ITVM').first().json.campo_respuesta_contacto_id), values: [{ value: $json.output }] }] }) }}"
       },
-      "id": "ab94c156-df4d-53d4-b1ae-0540679b4b81",
+      "id": "c0e375bd-6b38-59d3-8887-4376348619ec",
       "name": "Guardar Respuesta en Contacto",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -967,7 +983,7 @@
         "amount": 2,
         "unit": "seconds"
       },
-      "id": "d4134397-b1c8-5ffa-a512-c0aeaba308d7",
+      "id": "522ccb41-8bb5-50fb-b71f-7aca2320acd5",
       "name": "Wait Propagacion",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
@@ -975,7 +991,7 @@
         4980,
         300
       ],
-      "webhookId": "c0e375bd-6b38-59d3-8887-4376348619ec"
+      "webhookId": "d4134397-b1c8-5ffa-a512-c0aeaba308d7"
     },
     {
       "parameters": {
@@ -994,7 +1010,7 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify([{ bot_id: Number($('Config ITVM').first().json.salesbot_id), entity_id: Number($('Preparar Respuesta').first().json.contact_id), entity_type: 1 }]) }}"
       },
-      "id": "522ccb41-8bb5-50fb-b71f-7aca2320acd5",
+      "id": "615f6810-e7c4-5c4f-b617-902cb7f9b15c",
       "name": "Run Salesbot",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,

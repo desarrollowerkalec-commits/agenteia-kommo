@@ -34,11 +34,14 @@
             },
             {
               "name": "tag_derivado"
+            },
+            {
+              "name": "campo_resumen_lead_id"
             }
           ]
         }
       },
-      "id": "cb3b4d47-b1ac-5af9-aa84-666659daa620",
+      "id": "8f639b0e-d5dc-597f-bbd0-63e3dbbddc17",
       "name": "When Executed by Another Workflow",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -49,9 +52,9 @@
     },
     {
       "parameters": {
-        "jsCode": "const i = $input.first().json;\nconst limpio = v => String(v || '').trim();\nconst body = { tags_to_add: [{ name: limpio(i.tag_derivado) || 'ITVM-derivado' }] };\nconst status = Number(i.status_derivado_id) || 0;\nconst pipeline = Number(i.pipeline_id) || 0;\nif (status > 0) body.status_id = status;\nif (status > 0 && pipeline > 0) body.pipeline_id = pipeline;\nconst lineas = [\n  'Derivado por el asistente IA de ITVM',\n  limpio(i.nombre) && ('Nombre: ' + limpio(i.nombre)),\n  limpio(i.programa) && ('Programa: ' + limpio(i.programa)),\n  limpio(i.horario_preferido) && ('Horario preferido: ' + limpio(i.horario_preferido)),\n  limpio(i.financiamiento) && ('Financiamiento: ' + limpio(i.financiamiento)),\n  limpio(i.resumen) && ('Resumen:\\n' + limpio(i.resumen)),\n].filter(Boolean);\nconst base = limpio(i.kommo_base_url).replace(/\\/$/, '');\nreturn [{ json: { base, lead_id: limpio(i.lead_id), body, nota: lineas.join('\\n') } }];"
+        "jsCode": "const i = $input.first().json;\nconst limpio = v => String(v || '').trim();\nconst body = { tags_to_add: [{ name: limpio(i.tag_derivado) || 'ITVM-derivado' }] };\nconst status = Number(i.status_derivado_id) || 0;\nconst pipeline = Number(i.pipeline_id) || 0;\nif (status > 0) body.status_id = status;\nif (status > 0 && pipeline > 0) body.pipeline_id = pipeline;\nconst campoResumen = Number(i.campo_resumen_lead_id) || 0;\nconst textoResumen = [limpio(i.programa) && ('Programa: ' + limpio(i.programa)), limpio(i.horario_preferido) && ('Horario: ' + limpio(i.horario_preferido)), limpio(i.financiamiento) && ('Financiamiento: ' + limpio(i.financiamiento)), limpio(i.resumen)].filter(Boolean).join('\\n');\nif (campoResumen > 0 && textoResumen) body.custom_fields_values = [{ field_id: campoResumen, values: [{ value: textoResumen }] }];\nconst lineas = [\n  'Derivado por el asistente IA de ITVM',\n  limpio(i.nombre) && ('Nombre: ' + limpio(i.nombre)),\n  limpio(i.programa) && ('Programa: ' + limpio(i.programa)),\n  limpio(i.horario_preferido) && ('Horario preferido: ' + limpio(i.horario_preferido)),\n  limpio(i.financiamiento) && ('Financiamiento: ' + limpio(i.financiamiento)),\n  limpio(i.resumen) && ('Resumen:\\n' + limpio(i.resumen)),\n].filter(Boolean);\nconst base = limpio(i.kommo_base_url).replace(/\\/$/, '');\nreturn [{ json: { base, lead_id: limpio(i.lead_id), body, nota: lineas.join('\\n') } }];"
       },
-      "id": "8f639b0e-d5dc-597f-bbd0-63e3dbbddc17",
+      "id": "cfa254f1-f508-59f8-8f66-fb4097706c49",
       "name": "Armar Cambios",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -77,7 +80,7 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.body) }}"
       },
-      "id": "cfa254f1-f508-59f8-8f66-fb4097706c49",
+      "id": "98ecc585-3e1e-5863-9138-cd5b59eb33d2",
       "name": "Actualizar Lead",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -104,7 +107,7 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify([{ note_type: 'common', params: { text: $('Armar Cambios').first().json.nota } }]) }}"
       },
-      "id": "98ecc585-3e1e-5863-9138-cd5b59eb33d2",
+      "id": "e14be92d-0c94-5d9b-a989-618ac688d909",
       "name": "Agregar Nota",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -119,13 +122,13 @@
         "assignments": {
           "assignments": [
             {
-              "id": "e14be92d-0c94-5d9b-a989-618ac688d909",
+              "id": "ac078d58-c464-5ad0-973b-9f1e0360dbb5",
               "name": "ok",
               "value": "true",
               "type": "boolean"
             },
             {
-              "id": "ac078d58-c464-5ad0-973b-9f1e0360dbb5",
+              "id": "f4663b40-a60f-5010-8cdb-51ecb1c3d893",
               "name": "mensaje",
               "value": "Listo: el lead quedo derivado a un asesor. Despedite confirmando que un asesor le contacta y el horario de atencion.",
               "type": "string"
@@ -134,7 +137,7 @@
         },
         "options": {}
       },
-      "id": "f4663b40-a60f-5010-8cdb-51ecb1c3d893",
+      "id": "d1b3f13d-91bd-596b-9fd9-98cfb0f7d8af",
       "name": "Resultado OK",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -148,13 +151,13 @@
         "assignments": {
           "assignments": [
             {
-              "id": "d1b3f13d-91bd-596b-9fd9-98cfb0f7d8af",
+              "id": "4f3a0833-4180-5eda-a3bb-5b7589212296",
               "name": "ok",
               "value": "false",
               "type": "boolean"
             },
             {
-              "id": "4f3a0833-4180-5eda-a3bb-5b7589212296",
+              "id": "44e967f1-4bbd-57be-8894-382a9acd0b9b",
               "name": "mensaje",
               "value": "No se pudo registrar la derivacion en el CRM. Igual decile a la persona que un asesor le contacta, sin mencionar el error.",
               "type": "string"
@@ -163,7 +166,7 @@
         },
         "options": {}
       },
-      "id": "44e967f1-4bbd-57be-8894-382a9acd0b9b",
+      "id": "22385506-166b-513a-976a-df58001318e6",
       "name": "Resultado Error",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,

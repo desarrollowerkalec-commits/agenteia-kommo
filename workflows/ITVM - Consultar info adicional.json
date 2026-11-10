@@ -11,7 +11,7 @@
           ]
         }
       },
-      "id": "20514672-6b3c-5ba9-b032-a33507250d61",
+      "id": "e2d8b931-0dc3-5fbc-99b4-4c3ea4c41fbf",
       "name": "When Executed by Another Workflow",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -26,7 +26,7 @@
         "query": "SELECT notas_adicionales, actualizado_en FROM crm.itvm_bot_config WHERE id = 1;",
         "options": {}
       },
-      "id": "e2d8b931-0dc3-5fbc-99b4-4c3ea4c41fbf",
+      "id": "a77eae16-def8-565d-9cea-6f2bf9dd0610",
       "name": "Leer Info Adicional",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -41,7 +41,7 @@
       "parameters": {
         "jsCode": "const j = $input.first().json || {};\nconst texto = String(j.notas_adicionales || '').trim();\nif (!texto) {\n  return [{ json: { ok: false, nota: 'No hay informacion adicional cargada. No inventes precios ni fechas: ofrece que un asesor lo confirme.' } }];\n}\nreturn [{ json: { ok: true, actualizado_en: j.actualizado_en, informacion: texto.slice(0, 15000) } }];"
       },
-      "id": "a77eae16-def8-565d-9cea-6f2bf9dd0610",
+      "id": "cb3b4d47-b1ac-5af9-aa84-666659daa620",
       "name": "Formatear Info",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

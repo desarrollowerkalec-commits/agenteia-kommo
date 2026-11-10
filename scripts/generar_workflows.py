@@ -211,11 +211,12 @@ def wf_chat(prompt, ids):
              {"httpMethod": "POST", "path": "itvm-kommo", "options": {}}, webhookId=nid()))
 
     add(nodo("Config ITVM", "n8n-nodes-base.set", 3.4, (220, 300), asignaciones([
-        ("kommo_base_url", "https://SUBDOMINIO.kommo.com", "string"),
+        ("kommo_base_url", "https://dwcorporativoitvm.kommo.com", "string"),
         ("tag_derivado", "ITVM-derivado", "string"),
         ("status_derivado_id", 0, "number"),
         ("pipeline_id", 0, "number"),
-        ("campo_respuesta_contacto_id", 0, "number"),
+        ("campo_respuesta_contacto_id", 3929118, "number"),
+        ("campo_resumen_lead_id", 3929120, "number"),
         ("salesbot_id", 0, "number"),
         ("segundos_debounce", 8, "number"),
     ]) | {"includeOtherFields": True}))
@@ -420,6 +421,7 @@ def wf_chat(prompt, ids):
             "status_derivado_id": "={{ " + CFG + ".status_derivado_id }}",
             "pipeline_id": "={{ " + CFG + ".pipeline_id }}",
             "tag_derivado": "={{ " + CFG + ".tag_derivado }}",
+            "campo_resumen_lead_id": "={{ " + CFG + ".campo_resumen_lead_id }}",
         },
     ))
 
@@ -569,7 +571,8 @@ def wf_info():
 def wf_derivar():
     N, C = [], {}
     entradas = ["nombre", "programa", "horario_preferido", "financiamiento", "resumen",
-                "lead_id", "kommo_base_url", "status_derivado_id", "pipeline_id", "tag_derivado"]
+                "lead_id", "kommo_base_url", "status_derivado_id", "pipeline_id", "tag_derivado",
+                "campo_resumen_lead_id"]
     N.append(trigger_subworkflow((0, 300), entradas))
     N.append(nodo("Armar Cambios", "n8n-nodes-base.code", 2, (220, 300), {"jsCode": (
         "const i = $input.first().json;\n"
@@ -579,6 +582,9 @@ def wf_derivar():
         "const pipeline = Number(i.pipeline_id) || 0;\n"
         "if (status > 0) body.status_id = status;\n"
         "if (status > 0 && pipeline > 0) body.pipeline_id = pipeline;\n"
+        "const campoResumen = Number(i.campo_resumen_lead_id) || 0;\n"
+        "const textoResumen = [limpio(i.programa) && ('Programa: ' + limpio(i.programa)), limpio(i.horario_preferido) && ('Horario: ' + limpio(i.horario_preferido)), limpio(i.financiamiento) && ('Financiamiento: ' + limpio(i.financiamiento)), limpio(i.resumen)].filter(Boolean).join('\\n');\n"
+        "if (campoResumen > 0 && textoResumen) body.custom_fields_values = [{ field_id: campoResumen, values: [{ value: textoResumen }] }];\n"
         "const lineas = [\n"
         "  'Derivado por el asistente IA de ITVM',\n"
         "  limpio(i.nombre) && ('Nombre: ' + limpio(i.nombre)),\n"
