@@ -1,0 +1,308 @@
+{
+  "name": "ITVM - Sync Planilla",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6-22/2 * * *"
+            }
+          ]
+        }
+      },
+      "id": "176af89d-8343-5255-a362-83dbcc777519",
+      "name": "Cada 2 horas",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ID de la planilla de Google Sheets (debe estar compartida: 'cualquier persona con el enlace').\nconst sheet_id = '1YZqpfdGdRLp2OH683OvN3NZUjd0D_N27';\nreturn [{\"hoja\": \"Datos generales\", \"rango\": \"A4:C60\", \"encabezado\": \"Dato\"}, {\"hoja\": \"Programas\", \"rango\": \"A4:I80\", \"encabezado\": \"Nombre del programa\"}, {\"hoja\": \"Precios\", \"rango\": \"A4:G200\", \"encabezado\": \"Programa\"}, {\"hoja\": \"Horarios e inicios\", \"rango\": \"A4:H200\", \"encabezado\": \"Programa\"}, {\"hoja\": \"Promociones\", \"rango\": \"A4:G80\", \"encabezado\": \"Promoción\"}, {\"hoja\": \"Preguntas frecuentes\", \"rango\": \"A4:B120\", \"encabezado\": \"Pregunta\"}].map(h => ({ json: { ...h, sheet_id } }));"
+      },
+      "id": "c310914e-bf01-5b20-adaf-bfbf93341031",
+      "name": "Hojas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://docs.google.com/spreadsheets/d/{{ $json.sheet_id }}/gviz/tq",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "tqx",
+              "value": "out:csv"
+            },
+            {
+              "name": "sheet",
+              "value": "={{ $json.hoja }}"
+            },
+            {
+              "name": "range",
+              "value": "={{ $json.rango }}"
+            },
+            {
+              "name": "headers",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "6c0317ea-0071-59a6-ab49-f411b090aba0",
+      "name": "Leer Hoja",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Convierte las pestañas de la planilla en:\n//  - notas: texto que lee la tool \"Consultar informacion adicional\"\n//  - programas: filas para actualizar crm.itvm_programas\nconst HOJAS = $('Hojas').all().map(i => i.json);\nconst respuestas = $input.all().map(i => i.json);\n\nfunction parseCSV(texto) {\n  const filas = []; let fila = []; let campo = ''; let comillas = false;\n  for (let i = 0; i < texto.length; i++) {\n    const c = texto[i];\n    if (comillas) {\n      if (c === '\"') { if (texto[i + 1] === '\"') { campo += '\"'; i++; } else comillas = false; }\n      else campo += c;\n    } else if (c === '\"') comillas = true;\n    else if (c === ',') { fila.push(campo); campo = ''; }\n    else if (c === '\\n' || c === '\\r') {\n      if (c === '\\r' && texto[i + 1] === '\\n') i++;\n      fila.push(campo); filas.push(fila); fila = []; campo = '';\n    } else campo += c;\n  }\n  if (campo !== '' || fila.length) { fila.push(campo); filas.push(fila); }\n  return filas;\n}\nconst limpio = v => String(v == null ? '' : v).replace(/\\s+/g, ' ').trim();\nconst esEjemplo = fila => fila.some(v => /^EJEMPLO\\b/i.test(limpio(v)));\n// Filas de ejemplo que vinieron precargadas en la plantilla y no tienen la marca EJEMPLO.\nconst EJEMPLOS_PLANTILLA = new Set(['matrícula gratis enero']);\n\nconst tablas = {}; const errores = [];\nHOJAS.forEach((h, idx) => {\n  const r = respuestas[idx] || {};\n  const data = typeof r.data === 'string' ? r.data : '';\n  const filas = parseCSV(data);\n  if (!filas.length || limpio(filas[0][0]) !== h.encabezado) { errores.push(h.hoja); return; }\n  const enc = filas[0].map(limpio);\n  tablas[h.hoja] = filas.slice(1)\n    .filter(f => f.some(v => limpio(v) !== ''))\n    .map(f => Object.fromEntries(enc.map((k, i) => [k, limpio(f[i])])));\n});\nif (errores.length) {\n  return [{ json: { ok: false, errores, hojas_ok: HOJAS.length - errores.length } }];\n}\n\nconst out = [];\n// --- Datos generales\nconst dg = tablas['Datos generales'].filter(r => r['Dato'] && r['Valor']);\nif (dg.length) {\n  out.push('# DATOS GENERALES DE ITVM');\n  for (const r of dg) out.push(`- ${r['Dato']}: ${r['Valor']}`);\n}\n\n// --- Precios\nconst precios = tablas['Precios'].filter(r => r['Programa'] && r['Monto (₡)'] && !esEjemplo(Object.values(r)) && !/vencid/i.test(r['Estado']));\nout.push('', '# PRECIOS VIGENTES (en colones)');\nif (!precios.length) out.push('No hay precios cargados: el precio lo confirma un asesor.');\nconst porPrograma = {};\nfor (const r of precios) (porPrograma[r['Programa']] = porPrograma[r['Programa']] || []).push(r);\nfor (const [prog, filas] of Object.entries(porPrograma)) {\n  out.push(`## ${prog}`);\n  for (const r of filas) {\n    let monto = r['Monto (₡)']; if (!/₡/.test(monto)) monto = '₡' + monto;\n    out.push(`- ${r['Concepto'] || 'Precio'}: ${monto}` + (r['Detalle'] ? ` (${r['Detalle']})` : '') + (r['Vigente hasta'] ? ` — vigente hasta ${r['Vigente hasta']}` : ''));\n  }\n}\n\n// --- Horarios e inicios\nconst horarios = tablas['Horarios e inicios'].filter(r => r['Programa'] && !esEjemplo(Object.values(r)));\nout.push('', '# HORARIOS Y PRÓXIMOS INICIOS');\nif (!horarios.length) out.push('No hay grupos cargados: horarios y fechas de inicio los confirma un asesor.');\nfor (const r of horarios) {\n  const partes = [r['Jornada'], r['Días'], (r['Hora inicio'] && r['Hora fin']) ? `${r['Hora inicio']} a ${r['Hora fin']}` : (r['Hora inicio'] || '')].filter(Boolean).join(', ');\n  out.push(`- ${r['Programa']}: ${partes || 'horario a confirmar'}`\n    + (r['Fecha de inicio'] ? `. Inicio: ${r['Fecha de inicio']}` : '. Fecha de inicio: a confirmar con asesor')\n    + (r['Cupos'] ? `. Cupos: ${r['Cupos']}` : '')\n    + (r['Notas'] ? `. ${r['Notas']}` : ''));\n}\n\n// --- Promociones\nconst promos = tablas['Promociones'].filter(r => r['Promoción'] && !esEjemplo(Object.values(r))\n  && !EJEMPLOS_PLANTILLA.has(r['Promoción'].toLowerCase()) && !/vencid/i.test(r['Estado']));\nout.push('', '# PROMOCIONES Y BECAS');\nif (!promos.length) out.push('No hay promociones vigentes. No ofrezcas descuentos.');\nfor (const r of promos) {\n  const proxima = /pr[oó]xima/i.test(r['Estado']);\n  out.push(`- ${r['Promoción']}${proxima ? ' (todavía no empezó)' : ''}: ${r['Qué incluye']}`\n    + (r['Aplica a'] ? `. Aplica a: ${r['Aplica a']}` : '')\n    + (r['Desde'] ? `. Desde: ${r['Desde']}` : '') + (r['Hasta'] ? `. Hasta: ${r['Hasta']}` : '')\n    + (r['Condiciones'] ? `. Condiciones: ${r['Condiciones']}` : ''));\n}\n\n// --- Preguntas frecuentes\nconst faq = tablas['Preguntas frecuentes'].filter(r => r['Pregunta'] && r['Respuesta'] && !esEjemplo(Object.values(r)));\nif (faq.length) {\n  out.push('', '# PREGUNTAS FRECUENTES (responder con este contenido)');\n  for (const r of faq) out.push(`- P: ${r['Pregunta']}\\n  R: ${r['Respuesta']}`);\n}\n\n// --- Programas\nconst TIPOS = { 'carrera tecnica': 'tecnico', 'curso libre': 'curso_libre', 'capacitacion': 'capacitacion' };\nconst norm = v => limpio(v).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');\nconst sinMarcas = v => limpio(String(v || '').replace(/\\s*\\(\\s*VERIFICAR\\b[^)]*\\)/gi, '').replace(/^FALTA[^.]*\\.?/i, ''));\nconst programas = tablas['Programas'].filter(r => r['Nombre del programa']).map((r, i) => {\n  const acred = limpio(r['Acreditado INA']);\n  return {\n    nombre: r['Nombre del programa'],\n    slug: norm(r['Nombre del programa']).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),\n    tipo: TIPOS[norm(r['Tipo'])] || 'curso_libre',\n    activo: norm(r['Activo']) !== 'no',\n    acreditacion: (!acred || norm(acred) === 'no') ? null : (/^s[ií](\\s|$)/i.test(acred) ? ('Acreditada por el INA ' + acred.replace(/^s[ií]\\s*/i, '')).trim() : acred),\n    modalidad: sinMarcas(r['Modalidad']) || null,\n    duracion: sinMarcas(r['Duración']) || null,\n    requisitos: sinMarcas(r['Requisitos de ingreso']) || null,\n    notas: sinMarcas(r['Notas para el asistente']) || null,\n    url_folleto: /^https?:\\/\\//.test(r['Link del folleto']) ? r['Link del folleto'] : null,\n    orden: (i + 1) * 10,\n  };\n});\n\nconst notas = out.join('\\n').trim();\nreturn [{ json: { ok: true, hojas_ok: HOJAS.length, notas, largo: notas.length, programas, n_programas: programas.length } }];"
+      },
+      "id": "b96fcffb-c570-566d-9d29-5fe1025ebcd9",
+      "name": "Procesar Planilla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "p1",
+              "leftValue": "={{ $json.ok === true && $json.largo >= 100 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4e56c16c-34cb-580f-9ddc-e2ffa2624218",
+      "name": "Filter Planilla OK",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO crm.itvm_bot_config (id, notas_adicionales, actualizado_en)\nVALUES (1, $1, now())\nON CONFLICT (id) DO UPDATE SET notas_adicionales = EXCLUDED.notas_adicionales, actualizado_en = now();",
+        "options": {
+          "queryReplacement": "={{ [$json.notas] }}"
+        }
+      },
+      "id": "9cbf2479-e72a-561a-a5ac-efd87202b873",
+      "name": "Guardar Info",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "p2",
+              "leftValue": "={{ $('Procesar Planilla').first().json.n_programas > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ed569e5b-230b-5393-92ba-49692dccc4f8",
+      "name": "Filter Hay Programas",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH datos AS (\n  SELECT * FROM jsonb_to_recordset($1::jsonb) AS d(\n    nombre text, slug text, tipo text, activo boolean, acreditacion text, modalidad text,\n    duracion text, requisitos text, notas text, url_folleto text, orden int)\n), actualizados AS (\n  UPDATE crm.itvm_programas p SET\n    tipo = d.tipo,\n    activo = d.activo,\n    acreditacion = d.acreditacion,\n    modalidad = COALESCE(d.modalidad, p.modalidad),\n    duracion = COALESCE(d.duracion, p.duracion),\n    requisitos = COALESCE(d.requisitos, p.requisitos),\n    notas = COALESCE(d.notas, p.notas),\n    url_folleto = COALESCE(d.url_folleto, p.url_folleto),\n    orden = d.orden,\n    actualizado_en = now()\n  FROM datos d\n  WHERE lower(p.nombre) = lower(d.nombre)\n  RETURNING p.id\n), nuevos AS (\n  INSERT INTO crm.itvm_programas\n    (slug, nombre, tipo, activo, acreditacion, modalidad, duracion, requisitos, notas, url_folleto, palabras_clave, orden)\n  SELECT d.slug, d.nombre, d.tipo, d.activo, d.acreditacion, d.modalidad, d.duracion, d.requisitos,\n         d.notas, d.url_folleto, replace(d.slug, '-', ' '), d.orden\n  FROM datos d\n  WHERE NOT EXISTS (SELECT 1 FROM crm.itvm_programas p WHERE lower(p.nombre) = lower(d.nombre))\n  ON CONFLICT (slug) DO NOTHING\n  RETURNING id\n), desactivados AS (\n  -- Programas que ya no estan en la planilla: se dejan de ofrecer.\n  UPDATE crm.itvm_programas p SET activo = false, actualizado_en = now()\n  WHERE p.activo AND lower(p.nombre) NOT IN (SELECT lower(nombre) FROM datos)\n  RETURNING p.id\n)\nSELECT (SELECT count(*) FROM actualizados) AS actualizados,\n       (SELECT count(*) FROM nuevos) AS nuevos,\n       (SELECT count(*) FROM desactivados) AS desactivados;",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($('Procesar Planilla').first().json.programas)] }}"
+        }
+      },
+      "id": "d1061c89-3d7b-50ab-acf9-04859adb7ee4",
+      "name": "Guardar Programas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1540,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM crm.itvm_buffer WHERE creado_en < now() - interval '7 days';\nDELETE FROM crm.itvm_processed_messages WHERE creado_en < now() - interval '30 days';",
+        "options": {}
+      },
+      "id": "f509a573-2883-5cd5-b42e-56f6fc3ee369",
+      "name": "Limpiar Tablas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        520
+      ]
+    }
+  ],
+  "connections": {
+    "Cada 2 horas": {
+      "main": [
+        [
+          {
+            "node": "Hojas",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Limpiar Tablas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hojas": {
+      "main": [
+        [
+          {
+            "node": "Leer Hoja",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Hoja": {
+      "main": [
+        [
+          {
+            "node": "Procesar Planilla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesar Planilla": {
+      "main": [
+        [
+          {
+            "node": "Filter Planilla OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Planilla OK": {
+      "main": [
+        [
+          {
+            "node": "Guardar Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Info": {
+      "main": [
+        [
+          {
+            "node": "Filter Hay Programas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Hay Programas": {
+      "main": [
+        [
+          {
+            "node": "Guardar Programas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Costa_Rica"
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "cliente:itvm"
+    }
+  ]
+}

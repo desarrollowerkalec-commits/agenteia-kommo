@@ -11,7 +11,7 @@
           ]
         }
       },
-      "id": "6ad0d00a-18d5-52e5-b5f2-8c68dcce651b",
+      "id": "615f6810-e7c4-5c4f-b617-902cb7f9b15c",
       "name": "When Executed by Another Workflow",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -26,7 +26,7 @@
         "query": "SELECT slug, nombre, tipo, acreditacion, modalidad, duracion, horario, requisitos, dirigido_a,\n       contenido, inversion, notas, url_info, url_folleto, palabras_clave, orden\nFROM crm.itvm_programas\nWHERE activo\nORDER BY orden;",
         "options": {}
       },
-      "id": "1b36f36a-cbee-5812-bc80-bc32ddb4f4c5",
+      "id": "6ad0d00a-18d5-52e5-b5f2-8c68dcce651b",
       "name": "Leer Programas",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -41,7 +41,7 @@
       "parameters": {
         "jsCode": "const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim();\nconst consulta = norm($('When Executed by Another Workflow').first().json.consulta);\nconst programas = $input.all().map(i => i.json).filter(p => p && p.slug);\n\nconst resumen = p => ({ nombre: p.nombre, tipo: p.tipo, modalidad: p.modalidad, duracion: p.duracion, url_info: p.url_info });\nconst detalle = p => ({\n  nombre: p.nombre, tipo: p.tipo, acreditacion: p.acreditacion, modalidad: p.modalidad,\n  duracion: p.duracion, horario: p.horario || 'Consultar con asesor', requisitos: p.requisitos || 'Consultar con asesor',\n  dirigido_a: p.dirigido_a, contenido: p.contenido, inversion: p.inversion || 'Ver informacion adicional o consultar con asesor',\n  notas: p.notas, url_info: p.url_info, url_folleto: p.url_folleto,\n});\n\nif (programas.length === 0) {\n  return [{ json: { ok: false, nota: 'No se pudo leer la oferta academica. No inventes datos: ofrece que un asesor le confirme.' } }];\n}\n\nconst listar = /^(todos?|todas?|lista|listado|oferta|que tienen|que ofrecen|opciones|)$/.test(consulta);\nconst soloCarreras = /^(carreras?|tecnicos?|carreras tecnicas)$/.test(consulta);\nconst soloCursos = /^(cursos?|cursos libres?|capacitacion(es)?)$/.test(consulta);\nif (listar || soloCarreras || soloCursos) {\n  let lista = programas;\n  if (soloCarreras) lista = programas.filter(p => p.tipo === 'tecnico');\n  if (soloCursos) lista = programas.filter(p => p.tipo !== 'tecnico');\n  return [{ json: { ok: true, total: lista.length, programas: lista.map(resumen) } }];\n}\n\nconst vacias = new Set(['de','del','la','el','los','las','en','y','o','para','un','una','curso','cursos','carrera','carreras','tecnico','tecnica','info','informacion','precio','requisitos','horario','horarios']);\nconst palabras = consulta.split(/[^a-z0-9]+/).filter(w => w.length > 1 && !vacias.has(w));\n\nconst puntuados = programas.map(p => {\n  const texto = norm([p.nombre, p.slug.replace(/-/g, ' '), p.palabras_clave].join(' '));\n  let score = 0;\n  if (texto.includes(consulta)) score += 10;\n  for (const w of palabras) if (texto.includes(w)) score += (w.length > 3 ? 2 : 1);\n  return { p, score };\n}).filter(x => x.score > 0).sort((a, b) => b.score - a.score || (a.p.orden - b.p.orden));\n\nif (puntuados.length === 0) {\n  return [{ json: { ok: true, total: 0, nota: 'No hay un programa que coincida con esa busqueda. Estos son los programas disponibles; no ofrezcas otros.', programas: programas.map(resumen) } }];\n}\nconst top = puntuados[0].score;\nconst elegidos = puntuados.filter(x => x.score >= top / 2).slice(0, 3).map(x => detalle(x.p));\nreturn [{ json: { ok: true, total: elegidos.length, programas: elegidos } }];"
       },
-      "id": "20514672-6b3c-5ba9-b032-a33507250d61",
+      "id": "1b36f36a-cbee-5812-bc80-bc32ddb4f4c5",
       "name": "Buscar Programa",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

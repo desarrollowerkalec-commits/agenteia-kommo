@@ -1,6 +1,8 @@
 -- ITVM - Oferta academica
 -- Fuente: https://itvm.cr y folletos PDF publicados en el sitio (relevado 10/11/2026).
 -- Re-ejecutable: actualiza los registros existentes por slug.
+-- Los nombres deben coincidir EXACTO con la columna "Nombre del programa" de la planilla:
+-- el workflow "ITVM - Sync Planilla" empareja por nombre.
 --
 -- IMPORTANTE: los precios NO se cargan aca (los folletos publicos estan desactualizados
 -- o no los traen). Los precios, fechas de inicio y horarios vigentes se cargan en el
@@ -27,7 +29,7 @@ VALUES
  10),
 
 ('mecanica-motocicletas',
- 'Técnico en Mecánica de Motocicletas y Cuadraciclos (intensivo)', 'tecnico',
+ 'Técnico en Mecánica de Motocicletas (intensivo)', 'tecnico',
  NULL,
  'Presencial',
  '8 meses (modalidad intensiva)',
@@ -108,7 +110,7 @@ VALUES
 
 -- ===================== CURSOS LIBRES =====================
 ('inyeccion-motos',
- 'Curso libre: Inyección electrónica para motocicletas', 'curso_libre',
+ 'Inyección electrónica para motocicletas', 'curso_libre',
  NULL,
  'Presencial',
  '216 horas / 6 meses',
@@ -124,7 +126,7 @@ VALUES
  110),
 
 ('motores-2-tiempos',
- 'Curso libre: Motores de motocicletas 2 tiempos', 'curso_libre',
+ 'Motores de motocicletas 2 tiempos', 'curso_libre',
  NULL,
  'Presencial',
  '144 horas / 4 meses',
@@ -140,7 +142,7 @@ VALUES
  120),
 
 ('electricidad-residencial',
- 'Curso libre: Electricidad residencial', 'curso_libre',
+ 'Electricidad residencial', 'curso_libre',
  NULL,
  'Presencial',
  '288 horas / 8 meses',
@@ -156,7 +158,7 @@ VALUES
  130),
 
 ('diesel-common-rail',
- 'Curso libre: Inyección diésel Common Rail (CRDI)', 'curso_libre',
+ 'Inyección diésel Common Rail (CRDI)', 'curso_libre',
  NULL,
  NULL,
  '48 horas / 8 semanas',
@@ -172,7 +174,7 @@ VALUES
  140),
 
 ('metrologia',
- 'Curso libre: Metrología para la industria médica', 'curso_libre',
+ 'Metrología para la industria médica', 'curso_libre',
  NULL,
  'Bimodal',
  '216 horas (3 días por semana, 3 horas por día)',
@@ -188,7 +190,7 @@ VALUES
  150),
 
 ('montacargas',
- 'Capacitación: Manejo y uso de montacargas', 'capacitacion',
+ 'Manejo y uso de montacargas', 'capacitacion',
  NULL,
  'Bimodal: teoría virtual por Teams (requiere computadora e internet estable) + práctica presencial en plantel',
  '12 horas',

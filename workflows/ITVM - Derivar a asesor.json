@@ -27,10 +27,10 @@
               "name": "kommo_base_url"
             },
             {
-              "name": "status_derivado_id"
+              "name": "pipeline_id"
             },
             {
-              "name": "pipeline_id"
+              "name": "nombre_etapa_derivado"
             },
             {
               "name": "tag_derivado"
@@ -41,7 +41,7 @@
           ]
         }
       },
-      "id": "8f639b0e-d5dc-597f-bbd0-63e3dbbddc17",
+      "id": "cb3b4d47-b1ac-5af9-aa84-666659daa620",
       "name": "When Executed by Another Workflow",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -52,14 +52,38 @@
     },
     {
       "parameters": {
-        "jsCode": "const i = $input.first().json;\nconst limpio = v => String(v || '').trim();\nconst body = { tags_to_add: [{ name: limpio(i.tag_derivado) || 'ITVM-derivado' }] };\nconst status = Number(i.status_derivado_id) || 0;\nconst pipeline = Number(i.pipeline_id) || 0;\nif (status > 0) body.status_id = status;\nif (status > 0 && pipeline > 0) body.pipeline_id = pipeline;\nconst campoResumen = Number(i.campo_resumen_lead_id) || 0;\nconst textoResumen = [limpio(i.programa) && ('Programa: ' + limpio(i.programa)), limpio(i.horario_preferido) && ('Horario: ' + limpio(i.horario_preferido)), limpio(i.financiamiento) && ('Financiamiento: ' + limpio(i.financiamiento)), limpio(i.resumen)].filter(Boolean).join('\\n');\nif (campoResumen > 0 && textoResumen) body.custom_fields_values = [{ field_id: campoResumen, values: [{ value: textoResumen }] }];\nconst lineas = [\n  'Derivado por el asistente IA de ITVM',\n  limpio(i.nombre) && ('Nombre: ' + limpio(i.nombre)),\n  limpio(i.programa) && ('Programa: ' + limpio(i.programa)),\n  limpio(i.horario_preferido) && ('Horario preferido: ' + limpio(i.horario_preferido)),\n  limpio(i.financiamiento) && ('Financiamiento: ' + limpio(i.financiamiento)),\n  limpio(i.resumen) && ('Resumen:\\n' + limpio(i.resumen)),\n].filter(Boolean);\nconst base = limpio(i.kommo_base_url).replace(/\\/$/, '');\nreturn [{ json: { base, lead_id: limpio(i.lead_id), body, nota: lineas.join('\\n') } }];"
+        "url": "={{ String($json.kommo_base_url).replace(/\\/$/, '') }}/api/v4/leads/pipelines/{{ $json.pipeline_id }}/statuses",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "8f639b0e-d5dc-597f-bbd0-63e3dbbddc17",
+      "name": "Get Etapas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const i = $('When Executed by Another Workflow').first().json;\nconst limpio = v => String(v || '').trim();\nconst norm = v => limpio(v).toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\nconst body = { tags_to_add: [{ name: limpio(i.tag_derivado) || 'ITVM-derivado' }] };\nconst etapas = (($input.first().json || {})._embedded || {}).statuses || [];\nconst etapa = etapas.find(e => norm(e.name) === norm(i.nombre_etapa_derivado));\nif (etapa) body.status_id = etapa.id;\nconst campoResumen = Number(i.campo_resumen_lead_id) || 0;\nconst textoResumen = [limpio(i.programa) && ('Programa: ' + limpio(i.programa)), limpio(i.horario_preferido) && ('Horario: ' + limpio(i.horario_preferido)), limpio(i.financiamiento) && ('Financiamiento: ' + limpio(i.financiamiento)), limpio(i.resumen)].filter(Boolean).join('\\n');\nif (campoResumen > 0 && textoResumen) body.custom_fields_values = [{ field_id: campoResumen, values: [{ value: textoResumen }] }];\nconst lineas = [\n  'Derivado por el asistente IA de ITVM',\n  limpio(i.nombre) && ('Nombre: ' + limpio(i.nombre)),\n  limpio(i.programa) && ('Programa: ' + limpio(i.programa)),\n  limpio(i.horario_preferido) && ('Horario preferido: ' + limpio(i.horario_preferido)),\n  limpio(i.financiamiento) && ('Financiamiento: ' + limpio(i.financiamiento)),\n  limpio(i.resumen) && ('Resumen:\\n' + limpio(i.resumen)),\n].filter(Boolean);\nconst base = limpio(i.kommo_base_url).replace(/\\/$/, '');\nreturn [{ json: { base, lead_id: limpio(i.lead_id), body, nota: lineas.join('\\n') } }];"
       },
       "id": "cfa254f1-f508-59f8-8f66-fb4097706c49",
       "name": "Armar Cambios",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        220,
+        440,
         300
       ]
     },
@@ -85,7 +109,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        440,
+        660,
         300
       ],
       "onError": "continueErrorOutput"
@@ -112,7 +136,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        660,
+        880,
         200
       ],
       "onError": "continueRegularOutput"
@@ -142,7 +166,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        880,
+        1100,
         200
       ]
     },
@@ -171,13 +195,24 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        660,
+        880,
         420
       ]
     }
   ],
   "connections": {
     "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get Etapas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Etapas": {
       "main": [
         [
           {

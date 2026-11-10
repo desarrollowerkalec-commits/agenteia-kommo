@@ -213,11 +213,10 @@ def wf_chat(prompt, ids):
     add(nodo("Config ITVM", "n8n-nodes-base.set", 3.4, (220, 300), asignaciones([
         ("kommo_base_url", "https://dwcorporativoitvm.kommo.com", "string"),
         ("tag_derivado", "ITVM-derivado", "string"),
-        ("status_derivado_id", 0, "number"),
-        ("pipeline_id", 0, "number"),
-        ("campo_respuesta_contacto_id", 3929118, "number"),
+        ("nombre_etapa_derivado", "LISTO PARA ASESOR (IA)", "string"),
+        ("campo_respuesta_lead_id", 3929118, "number"),
         ("campo_resumen_lead_id", 3929120, "number"),
-        ("salesbot_id", 0, "number"),
+        ("salesbot_id", 212896, "number"),
         ("segundos_debounce", 8, "number"),
     ]) | {"includeOtherFields": True}))
 
@@ -405,7 +404,7 @@ def wf_chat(prompt, ids):
     ))
     add(tool_workflow(
         "Derivar a asesor", (4380, 640),
-        "Pasa la conversacion a un asesor humano de admisiones: mueve el lead en Kommo, le agrega la "
+        "Pasa la conversacion a un asesor humano de admisiones: mueve el lead a la etapa de derivacion, le agrega la "
         "etiqueta de derivado y deja una nota con el resumen. Despues de esto el bot deja de responder "
         "en este chat. Usala cuando la persona quiere matricularse, pide hablar con una persona o visitar "
         "el instituto, es una empresa, o necesita algo que solo resuelve un humano.",
@@ -418,8 +417,8 @@ def wf_chat(prompt, ids):
             "resumen": from_ai("resumen", "Resumen de 3 a 6 lineas para el asesor: que quiere, si cumple requisitos, dudas pendientes y datos de contacto que dio"),
             "lead_id": "={{ " + MSG + ".element_id }}",
             "kommo_base_url": "={{ " + CFG + ".kommo_base_url }}",
-            "status_derivado_id": "={{ " + CFG + ".status_derivado_id }}",
-            "pipeline_id": "={{ " + CFG + ".pipeline_id }}",
+            "pipeline_id": "={{ $('Get Lead').first().json.pipeline_id }}",
+            "nombre_etapa_derivado": "={{ " + CFG + ".nombre_etapa_derivado }}",
             "tag_derivado": "={{ " + CFG + ".tag_derivado }}",
             "campo_resumen_lead_id": "={{ " + CFG + ".campo_resumen_lead_id }}",
         },
@@ -427,28 +426,27 @@ def wf_chat(prompt, ids):
 
     add(nodo("Preparar Respuesta", "n8n-nodes-base.code", 2, (4320, 300), {
         "jsCode": (
-            "const lead = $('Get Lead').first().json || {};\n"
-            "const contactos = (lead._embedded && lead._embedded.contacts) || [];\n"
-            "const principal = contactos.find(c => c.is_main) || contactos[0];\n"
-            "const contact_id = (principal && principal.id) || Number($('Set Campos Mensaje').first().json.contact_id) || null;\n"
+            "const lead_id = Number($('Set Campos Mensaje').first().json.element_id) || null;\n"
             "let output = String($json.output || '').trim();\n"
             "if (!output) return [];\n"
             "// Kommo/WhatsApp no renderizan markdown de titulos ni negritas dobles.\n"
             "output = output.replace(/\\*\\*(.+?)\\*\\*/g, '*$1*').replace(/^#+\\s*/gm, '');\n"
-            "return [{ json: { output, contact_id } }];"
+            "return [{ json: { output, lead_id } }];"
         )
     }))
-    add(nodo("Filter Tiene Contacto", "n8n-nodes-base.filter", 2.2, (4540, 300), filtro([
-        cond_bool("c1", "={{ !!$json.contact_id }}"),
+    add(nodo("Filter Tiene Lead", "n8n-nodes-base.filter", 2.2, (4540, 300), filtro([
+        cond_bool("c1", "={{ !!$json.lead_id }}"),
     ])))
-    add(nodo("Guardar Respuesta en Contacto", "n8n-nodes-base.httpRequest", 4.2, (4760, 300), http_kommo(
-        "PATCH", "=" + BASE + "/api/v4/contacts/{{ $json.contact_id }}",
+    # La respuesta se guarda en un campo del LEAD (cada lead tiene el suyo: no hay cruces entre chats)
+    # y el Salesbot envia ese campo por el chat del lead.
+    add(nodo("Guardar Respuesta en Lead", "n8n-nodes-base.httpRequest", 4.2, (4760, 300), http_kommo(
+        "PATCH", "=" + BASE + "/api/v4/leads/{{ $json.lead_id }}",
         "={{ JSON.stringify({ custom_fields_values: [{ field_id: Number(" + CFG
-        + ".campo_respuesta_contacto_id), values: [{ value: $json.output }] }] }) }}")))
+        + ".campo_respuesta_lead_id), values: [{ value: $json.output }] }] }) }}")))
     add(espera("Wait Propagacion", (4980, 300), 2))
     add(nodo("Run Salesbot", "n8n-nodes-base.httpRequest", 4.2, (5200, 300), http_kommo(
         "POST", "=" + BASE + "/api/v2/salesbot/run",
-        "={{ JSON.stringify([{ bot_id: Number(" + CFG + ".salesbot_id), entity_id: Number($('Preparar Respuesta').first().json.contact_id), entity_type: 1 }]) }}")))
+        "={{ JSON.stringify([{ bot_id: Number(" + CFG + ".salesbot_id), entity_id: Number($('Preparar Respuesta').first().json.lead_id), entity_type: 2 }]) }}")))
 
     # conexiones
     for a, b in [
@@ -462,9 +460,9 @@ def wf_chat(prompt, ids):
         ("Set Audio Text", "Guardar en Buffer"), ("Set Text Content", "Guardar en Buffer"),
         ("Guardar en Buffer", "Wait Debounce"), ("Wait Debounce", "Reclamar Buffer"),
         ("Reclamar Buffer", "Unir Mensajes"), ("Unir Mensajes", "Agente ITVM"),
-        ("Agente ITVM", "Preparar Respuesta"), ("Preparar Respuesta", "Filter Tiene Contacto"),
-        ("Filter Tiene Contacto", "Guardar Respuesta en Contacto"),
-        ("Guardar Respuesta en Contacto", "Wait Propagacion"), ("Wait Propagacion", "Run Salesbot"),
+        ("Agente ITVM", "Preparar Respuesta"), ("Preparar Respuesta", "Filter Tiene Lead"),
+        ("Filter Tiene Lead", "Guardar Respuesta en Lead"),
+        ("Guardar Respuesta en Lead", "Wait Propagacion"), ("Wait Propagacion", "Run Salesbot"),
     ]:
         conectar(C, a, b)
     conectar(C, "Switch /reset", "Reset Memoria", 0)
@@ -571,17 +569,21 @@ def wf_info():
 def wf_derivar():
     N, C = [], {}
     entradas = ["nombre", "programa", "horario_preferido", "financiamiento", "resumen",
-                "lead_id", "kommo_base_url", "status_derivado_id", "pipeline_id", "tag_derivado",
+                "lead_id", "kommo_base_url", "pipeline_id", "nombre_etapa_derivado", "tag_derivado",
                 "campo_resumen_lead_id"]
     N.append(trigger_subworkflow((0, 300), entradas))
-    N.append(nodo("Armar Cambios", "n8n-nodes-base.code", 2, (220, 300), {"jsCode": (
-        "const i = $input.first().json;\n"
+    # Cada asesor tiene su embudo: se busca la etapa de derivacion POR NOMBRE dentro del embudo del lead.
+    N.append(nodo("Get Etapas", "n8n-nodes-base.httpRequest", 4.2, (220, 300), http_kommo(
+        "GET", "={{ String($json.kommo_base_url).replace(/\\/$/, '') }}/api/v4/leads/pipelines/{{ $json.pipeline_id }}/statuses"),
+        onError="continueRegularOutput", alwaysOutputData=True))
+    N.append(nodo("Armar Cambios", "n8n-nodes-base.code", 2, (440, 300), {"jsCode": (
+        "const i = $('When Executed by Another Workflow').first().json;\n"
         "const limpio = v => String(v || '').trim();\n"
+        "const norm = v => limpio(v).toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\n"
         "const body = { tags_to_add: [{ name: limpio(i.tag_derivado) || 'ITVM-derivado' }] };\n"
-        "const status = Number(i.status_derivado_id) || 0;\n"
-        "const pipeline = Number(i.pipeline_id) || 0;\n"
-        "if (status > 0) body.status_id = status;\n"
-        "if (status > 0 && pipeline > 0) body.pipeline_id = pipeline;\n"
+        "const etapas = (($input.first().json || {})._embedded || {}).statuses || [];\n"
+        "const etapa = etapas.find(e => norm(e.name) === norm(i.nombre_etapa_derivado));\n"
+        "if (etapa) body.status_id = etapa.id;\n"
         "const campoResumen = Number(i.campo_resumen_lead_id) || 0;\n"
         "const textoResumen = [limpio(i.programa) && ('Programa: ' + limpio(i.programa)), limpio(i.horario_preferido) && ('Horario: ' + limpio(i.horario_preferido)), limpio(i.financiamiento) && ('Financiamiento: ' + limpio(i.financiamiento)), limpio(i.resumen)].filter(Boolean).join('\\n');\n"
         "if (campoResumen > 0 && textoResumen) body.custom_fields_values = [{ field_id: campoResumen, values: [{ value: textoResumen }] }];\n"
@@ -596,22 +598,23 @@ def wf_derivar():
         "const base = limpio(i.kommo_base_url).replace(/\\/$/, '');\n"
         "return [{ json: { base, lead_id: limpio(i.lead_id), body, nota: lineas.join('\\n') } }];"
     )}))
-    N.append(nodo("Actualizar Lead", "n8n-nodes-base.httpRequest", 4.2, (440, 300), http_kommo(
+    N.append(nodo("Actualizar Lead", "n8n-nodes-base.httpRequest", 4.2, (660, 300), http_kommo(
         "PATCH", "={{ $json.base }}/api/v4/leads/{{ $json.lead_id }}",
         "={{ JSON.stringify($json.body) }}"), onError="continueErrorOutput"))
-    N.append(nodo("Agregar Nota", "n8n-nodes-base.httpRequest", 4.2, (660, 200), http_kommo(
+    N.append(nodo("Agregar Nota", "n8n-nodes-base.httpRequest", 4.2, (880, 200), http_kommo(
         "POST", "={{ $('Armar Cambios').first().json.base }}/api/v4/leads/{{ $('Armar Cambios').first().json.lead_id }}/notes",
         "={{ JSON.stringify([{ note_type: 'common', params: { text: $('Armar Cambios').first().json.nota } }]) }}"),
         onError="continueRegularOutput"))
-    N.append(nodo("Resultado OK", "n8n-nodes-base.set", 3.4, (880, 200), asignaciones([
+    N.append(nodo("Resultado OK", "n8n-nodes-base.set", 3.4, (1100, 200), asignaciones([
         ("ok", "true", "boolean"),
         ("mensaje", "Listo: el lead quedo derivado a un asesor. Despedite confirmando que un asesor le contacta y el horario de atencion.", "string"),
     ])))
-    N.append(nodo("Resultado Error", "n8n-nodes-base.set", 3.4, (660, 420), asignaciones([
+    N.append(nodo("Resultado Error", "n8n-nodes-base.set", 3.4, (880, 420), asignaciones([
         ("ok", "false", "boolean"),
         ("mensaje", "No se pudo registrar la derivacion en el CRM. Igual decile a la persona que un asesor le contacta, sin mencionar el error.", "string"),
     ])))
-    conectar(C, "When Executed by Another Workflow", "Armar Cambios")
+    conectar(C, "When Executed by Another Workflow", "Get Etapas")
+    conectar(C, "Get Etapas", "Armar Cambios")
     conectar(C, "Armar Cambios", "Actualizar Lead")
     conectar(C, "Actualizar Lead", "Agregar Nota", 0)
     conectar(C, "Actualizar Lead", "Resultado Error", 1)
@@ -620,60 +623,235 @@ def wf_derivar():
 
 
 # ---------------------------------------------------------------------------
-# 5) Sync Documento (Google Doc -> itvm_bot_config) + limpieza
+# 5) Sync Planilla (Google Sheets -> itvm_bot_config + itvm_programas) + limpieza
 # ---------------------------------------------------------------------------
-JS_EXTRAER = r"""
-let texto = String($input.first().json.data || '');
-if (/<html|<body/i.test(texto)) {
-  texto = texto
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<head[\s\S]*?<\/head>/gi, '')
-    .replace(/<\/(p|li|div|tr|h[1-6])>/gi, '\n')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<[^>]+>/g, '');
-  const ent = { '&nbsp;': ' ', '&amp;': '&', '&quot;': '"', '&#39;': "'", '&lt;': '<', '&gt;': '>',
-    '&aacute;': 'á', '&eacute;': 'é', '&iacute;': 'í', '&oacute;': 'ó', '&uacute;': 'ú', '&ntilde;': 'ñ',
-    '&Aacute;': 'Á', '&Eacute;': 'É', '&Iacute;': 'Í', '&Oacute;': 'Ó', '&Uacute;': 'Ú', '&Ntilde;': 'Ñ',
-    '&iquest;': '¿', '&iexcl;': '¡', '&mdash;': '—', '&ndash;': '–' };
-  for (const [k, v] of Object.entries(ent)) texto = texto.split(k).join(v);
-  texto = texto.replace(/&#(\d+);/g, (m, c) => String.fromCodePoint(parseInt(c, 10)));
-  texto = texto.replace(/&#x([0-9a-f]+);/gi, (m, c) => String.fromCodePoint(parseInt(c, 16)));
+SHEET_ID = "1YZqpfdGdRLp2OH683OvN3NZUjd0D_N27"
+
+# hoja, rango (desde la fila de encabezados), primer encabezado esperado (valida que la hoja exista:
+# si el nombre no existe, Google devuelve la PRIMERA hoja sin avisar).
+HOJAS = [
+    ("Datos generales", "A4:C60", "Dato"),
+    ("Programas", "A4:I80", "Nombre del programa"),
+    ("Precios", "A4:G200", "Programa"),
+    ("Horarios e inicios", "A4:H200", "Programa"),
+    ("Promociones", "A4:G80", "Promoción"),
+    ("Preguntas frecuentes", "A4:B120", "Pregunta"),
+]
+
+JS_PROCESAR_PLANILLA = r"""
+// Convierte las pestañas de la planilla en:
+//  - notas: texto que lee la tool "Consultar informacion adicional"
+//  - programas: filas para actualizar crm.itvm_programas
+const HOJAS = $('Hojas').all().map(i => i.json);
+const respuestas = $input.all().map(i => i.json);
+
+function parseCSV(texto) {
+  const filas = []; let fila = []; let campo = ''; let comillas = false;
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i];
+    if (comillas) {
+      if (c === '"') { if (texto[i + 1] === '"') { campo += '"'; i++; } else comillas = false; }
+      else campo += c;
+    } else if (c === '"') comillas = true;
+    else if (c === ',') { fila.push(campo); campo = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && texto[i + 1] === '\n') i++;
+      fila.push(campo); filas.push(fila); fila = []; campo = '';
+    } else campo += c;
+  }
+  if (campo !== '' || fila.length) { fila.push(campo); filas.push(fila); }
+  return filas;
 }
-texto = texto.replace(/\r\n/g, '\n').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-return [{ json: { texto, largo: texto.length } }];
+const limpio = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+const esEjemplo = fila => fila.some(v => /^EJEMPLO\b/i.test(limpio(v)));
+// Filas de ejemplo que vinieron precargadas en la plantilla y no tienen la marca EJEMPLO.
+const EJEMPLOS_PLANTILLA = new Set(['matrícula gratis enero']);
+
+const tablas = {}; const errores = [];
+HOJAS.forEach((h, idx) => {
+  const r = respuestas[idx] || {};
+  const data = typeof r.data === 'string' ? r.data : '';
+  const filas = parseCSV(data);
+  if (!filas.length || limpio(filas[0][0]) !== h.encabezado) { errores.push(h.hoja); return; }
+  const enc = filas[0].map(limpio);
+  tablas[h.hoja] = filas.slice(1)
+    .filter(f => f.some(v => limpio(v) !== ''))
+    .map(f => Object.fromEntries(enc.map((k, i) => [k, limpio(f[i])])));
+});
+if (errores.length) {
+  return [{ json: { ok: false, errores, hojas_ok: HOJAS.length - errores.length } }];
+}
+
+const out = [];
+// --- Datos generales
+const dg = tablas['Datos generales'].filter(r => r['Dato'] && r['Valor']);
+if (dg.length) {
+  out.push('# DATOS GENERALES DE ITVM');
+  for (const r of dg) out.push(`- ${r['Dato']}: ${r['Valor']}`);
+}
+
+// --- Precios
+const precios = tablas['Precios'].filter(r => r['Programa'] && r['Monto (₡)'] && !esEjemplo(Object.values(r)) && !/vencid/i.test(r['Estado']));
+out.push('', '# PRECIOS VIGENTES (en colones)');
+if (!precios.length) out.push('No hay precios cargados: el precio lo confirma un asesor.');
+const porPrograma = {};
+for (const r of precios) (porPrograma[r['Programa']] = porPrograma[r['Programa']] || []).push(r);
+for (const [prog, filas] of Object.entries(porPrograma)) {
+  out.push(`## ${prog}`);
+  for (const r of filas) {
+    let monto = r['Monto (₡)']; if (!/₡/.test(monto)) monto = '₡' + monto;
+    out.push(`- ${r['Concepto'] || 'Precio'}: ${monto}` + (r['Detalle'] ? ` (${r['Detalle']})` : '') + (r['Vigente hasta'] ? ` — vigente hasta ${r['Vigente hasta']}` : ''));
+  }
+}
+
+// --- Horarios e inicios
+const horarios = tablas['Horarios e inicios'].filter(r => r['Programa'] && !esEjemplo(Object.values(r)));
+out.push('', '# HORARIOS Y PRÓXIMOS INICIOS');
+if (!horarios.length) out.push('No hay grupos cargados: horarios y fechas de inicio los confirma un asesor.');
+for (const r of horarios) {
+  const partes = [r['Jornada'], r['Días'], (r['Hora inicio'] && r['Hora fin']) ? `${r['Hora inicio']} a ${r['Hora fin']}` : (r['Hora inicio'] || '')].filter(Boolean).join(', ');
+  out.push(`- ${r['Programa']}: ${partes || 'horario a confirmar'}`
+    + (r['Fecha de inicio'] ? `. Inicio: ${r['Fecha de inicio']}` : '. Fecha de inicio: a confirmar con asesor')
+    + (r['Cupos'] ? `. Cupos: ${r['Cupos']}` : '')
+    + (r['Notas'] ? `. ${r['Notas']}` : ''));
+}
+
+// --- Promociones
+const promos = tablas['Promociones'].filter(r => r['Promoción'] && !esEjemplo(Object.values(r))
+  && !EJEMPLOS_PLANTILLA.has(r['Promoción'].toLowerCase()) && !/vencid/i.test(r['Estado']));
+out.push('', '# PROMOCIONES Y BECAS');
+if (!promos.length) out.push('No hay promociones vigentes. No ofrezcas descuentos.');
+for (const r of promos) {
+  const proxima = /pr[oó]xima/i.test(r['Estado']);
+  out.push(`- ${r['Promoción']}${proxima ? ' (todavía no empezó)' : ''}: ${r['Qué incluye']}`
+    + (r['Aplica a'] ? `. Aplica a: ${r['Aplica a']}` : '')
+    + (r['Desde'] ? `. Desde: ${r['Desde']}` : '') + (r['Hasta'] ? `. Hasta: ${r['Hasta']}` : '')
+    + (r['Condiciones'] ? `. Condiciones: ${r['Condiciones']}` : ''));
+}
+
+// --- Preguntas frecuentes
+const faq = tablas['Preguntas frecuentes'].filter(r => r['Pregunta'] && r['Respuesta'] && !esEjemplo(Object.values(r)));
+if (faq.length) {
+  out.push('', '# PREGUNTAS FRECUENTES (responder con este contenido)');
+  for (const r of faq) out.push(`- P: ${r['Pregunta']}\n  R: ${r['Respuesta']}`);
+}
+
+// --- Programas
+const TIPOS = { 'carrera tecnica': 'tecnico', 'curso libre': 'curso_libre', 'capacitacion': 'capacitacion' };
+const norm = v => limpio(v).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+const sinMarcas = v => limpio(String(v || '').replace(/\s*\(\s*VERIFICAR\b[^)]*\)/gi, '').replace(/^FALTA[^.]*\.?/i, ''));
+const programas = tablas['Programas'].filter(r => r['Nombre del programa']).map((r, i) => {
+  const acred = limpio(r['Acreditado INA']);
+  return {
+    nombre: r['Nombre del programa'],
+    slug: norm(r['Nombre del programa']).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+    tipo: TIPOS[norm(r['Tipo'])] || 'curso_libre',
+    activo: norm(r['Activo']) !== 'no',
+    acreditacion: (!acred || norm(acred) === 'no') ? null : (/^s[ií](\s|$)/i.test(acred) ? ('Acreditada por el INA ' + acred.replace(/^s[ií]\s*/i, '')).trim() : acred),
+    modalidad: sinMarcas(r['Modalidad']) || null,
+    duracion: sinMarcas(r['Duración']) || null,
+    requisitos: sinMarcas(r['Requisitos de ingreso']) || null,
+    notas: sinMarcas(r['Notas para el asistente']) || null,
+    url_folleto: /^https?:\/\//.test(r['Link del folleto']) ? r['Link del folleto'] : null,
+    orden: (i + 1) * 10,
+  };
+});
+
+const notas = out.join('\n').trim();
+return [{ json: { ok: true, hojas_ok: HOJAS.length, notas, largo: notas.length, programas, n_programas: programas.length } }];
+""".strip()
+
+SQL_PROGRAMAS = """
+WITH datos AS (
+  SELECT * FROM jsonb_to_recordset($1::jsonb) AS d(
+    nombre text, slug text, tipo text, activo boolean, acreditacion text, modalidad text,
+    duracion text, requisitos text, notas text, url_folleto text, orden int)
+), actualizados AS (
+  UPDATE crm.itvm_programas p SET
+    tipo = d.tipo,
+    activo = d.activo,
+    acreditacion = d.acreditacion,
+    modalidad = COALESCE(d.modalidad, p.modalidad),
+    duracion = COALESCE(d.duracion, p.duracion),
+    requisitos = COALESCE(d.requisitos, p.requisitos),
+    notas = COALESCE(d.notas, p.notas),
+    url_folleto = COALESCE(d.url_folleto, p.url_folleto),
+    orden = d.orden,
+    actualizado_en = now()
+  FROM datos d
+  WHERE lower(p.nombre) = lower(d.nombre)
+  RETURNING p.id
+), nuevos AS (
+  INSERT INTO crm.itvm_programas
+    (slug, nombre, tipo, activo, acreditacion, modalidad, duracion, requisitos, notas, url_folleto, palabras_clave, orden)
+  SELECT d.slug, d.nombre, d.tipo, d.activo, d.acreditacion, d.modalidad, d.duracion, d.requisitos,
+         d.notas, d.url_folleto, replace(d.slug, '-', ' '), d.orden
+  FROM datos d
+  WHERE NOT EXISTS (SELECT 1 FROM crm.itvm_programas p WHERE lower(p.nombre) = lower(d.nombre))
+  ON CONFLICT (slug) DO NOTHING
+  RETURNING id
+), desactivados AS (
+  -- Programas que ya no estan en la planilla: se dejan de ofrecer.
+  UPDATE crm.itvm_programas p SET activo = false, actualizado_en = now()
+  WHERE p.activo AND lower(p.nombre) NOT IN (SELECT lower(nombre) FROM datos)
+  RETURNING p.id
+)
+SELECT (SELECT count(*) FROM actualizados) AS actualizados,
+       (SELECT count(*) FROM nuevos) AS nuevos,
+       (SELECT count(*) FROM desactivados) AS desactivados;
 """.strip()
 
 
-def wf_sync():
+def wf_sync_planilla():
     N, C = [], {}
     N.append(nodo("Cada 2 horas", "n8n-nodes-base.scheduleTrigger", 1.2, (0, 300),
                   {"rule": {"interval": [{"field": "cronExpression", "expression": "0 6-22/2 * * *"}]}}))
-    N.append(nodo("Traer Documento", "n8n-nodes-base.httpRequest", 4.2, (220, 300), {
-        "url": "https://docs.google.com/document/d/ID_DEL_DOCUMENTO/export?format=txt",
+    N.append(nodo("Hojas", "n8n-nodes-base.code", 2, (220, 300), {"jsCode": (
+        "// ID de la planilla de Google Sheets (debe estar compartida: 'cualquier persona con el enlace').\n"
+        "const sheet_id = '" + SHEET_ID + "';\n"
+        "return " + json.dumps([{"hoja": h, "rango": r, "encabezado": e} for h, r, e in HOJAS], ensure_ascii=False)
+        + ".map(h => ({ json: { ...h, sheet_id } }));"
+    )}))
+    N.append(nodo("Leer Hoja", "n8n-nodes-base.httpRequest", 4.2, (440, 300), {
+        "url": "=https://docs.google.com/spreadsheets/d/{{ $json.sheet_id }}/gviz/tq",
+        "sendQuery": True,
+        "queryParameters": {"parameters": [
+            {"name": "tqx", "value": "out:csv"},
+            {"name": "sheet", "value": "={{ $json.hoja }}"},
+            {"name": "range", "value": "={{ $json.rango }}"},
+            {"name": "headers", "value": "1"},
+        ]},
         "options": {"response": {"response": {"responseFormat": "text"}}},
-    }, retryOnFail=True, maxTries=3, waitBetweenTries=5000))
-    N.append(nodo("Extraer Texto", "n8n-nodes-base.code", 2, (440, 300), {"jsCode": JS_EXTRAER}))
-    N.append(nodo("Filter Texto Valido", "n8n-nodes-base.filter", 2.2, (660, 300), filtro([
-        # Evita pisar la info buena con una pagina de error o un doc vacio.
-        cond_bool("s1", "={{ $json.largo >= 100 && !/sign in|iniciar sesi[oó]n|accounts\\.google/i.test($json.texto.slice(0, 500)) }}"),
+    }, retryOnFail=True, maxTries=3, waitBetweenTries=5000, onError="continueRegularOutput"))
+    N.append(nodo("Procesar Planilla", "n8n-nodes-base.code", 2, (660, 300), {"jsCode": JS_PROCESAR_PLANILLA}))
+    N.append(nodo("Filter Planilla OK", "n8n-nodes-base.filter", 2.2, (880, 300), filtro([
+        # Si alguna hoja fallo, no se pisa la informacion buena que ya esta en la base.
+        cond_bool("p1", "={{ $json.ok === true && $json.largo >= 100 }}"),
     ])))
     N.append(pg(
         "INSERT INTO crm.itvm_bot_config (id, notas_adicionales, actualizado_en)\n"
         "VALUES (1, $1, now())\n"
         "ON CONFLICT (id) DO UPDATE SET notas_adicionales = EXCLUDED.notas_adicionales, actualizado_en = now();",
-        "={{ [$json.texto] }}",
-        nombre="Guardar Info", pos=(880, 300)))
+        "={{ [$json.notas] }}",
+        nombre="Guardar Info", pos=(1100, 300)))
+    N.append(nodo("Filter Hay Programas", "n8n-nodes-base.filter", 2.2, (1320, 300), filtro([
+        cond_bool("p2", "={{ $('Procesar Planilla').first().json.n_programas > 0 }}"),
+    ])))
+    N.append(pg(SQL_PROGRAMAS, "={{ [JSON.stringify($('Procesar Planilla').first().json.programas)] }}",
+                nombre="Guardar Programas", pos=(1540, 300)))
     N.append(pg(
         "DELETE FROM crm.itvm_buffer WHERE creado_en < now() - interval '7 days';\n"
         "DELETE FROM crm.itvm_processed_messages WHERE creado_en < now() - interval '30 days';",
-        nombre="Limpiar Tablas", pos=(440, 520)))
-    conectar(C, "Cada 2 horas", "Traer Documento")
+        nombre="Limpiar Tablas", pos=(220, 520)))
+    conectar(C, "Cada 2 horas", "Hojas")
     conectar(C, "Cada 2 horas", "Limpiar Tablas")
-    conectar(C, "Traer Documento", "Extraer Texto")
-    conectar(C, "Extraer Texto", "Filter Texto Valido")
-    conectar(C, "Filter Texto Valido", "Guardar Info")
-    w = workflow("ITVM - Sync Documento", N, C)
+    conectar(C, "Hojas", "Leer Hoja")
+    conectar(C, "Leer Hoja", "Procesar Planilla")
+    conectar(C, "Procesar Planilla", "Filter Planilla OK")
+    conectar(C, "Filter Planilla OK", "Guardar Info")
+    conectar(C, "Guardar Info", "Filter Hay Programas")
+    conectar(C, "Filter Hay Programas", "Guardar Programas")
+    w = workflow("ITVM - Sync Planilla", N, C)
     w["settings"]["timezone"] = "America/Costa_Rica"
     return w
 
@@ -693,7 +871,7 @@ def main():
 
     ids = {"oferta": a.id_oferta, "info": a.id_info, "derivar": a.id_derivar}
     SALIDA.mkdir(exist_ok=True)
-    for wf in [wf_chat(prompt, ids), wf_oferta(), wf_info(), wf_derivar(), wf_sync()]:
+    for wf in [wf_chat(prompt, ids), wf_oferta(), wf_info(), wf_derivar(), wf_sync_planilla()]:
         destino = SALIDA / (wf["name"] + ".json")
         destino.write_text(json.dumps(wf, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print("generado:", destino.relative_to(RAIZ))
