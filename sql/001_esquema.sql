@@ -64,5 +64,10 @@ CREATE TABLE IF NOT EXISTS crm.itvm_programas (
   actualizado_en    timestamptz NOT NULL DEFAULT now()
 );
 
--- La memoria del agente (tabla public.itvm_chat_histories) la crea n8n automaticamente
--- la primera vez que corre el nodo "Postgres Chat Memory".
+-- 5) Memoria del agente. Misma estructura que crea el nodo "Postgres Chat Memory" de n8n;
+--    se crea aca para que "/reset" funcione aunque el agente todavia no haya respondido nunca.
+CREATE TABLE IF NOT EXISTS public.itvm_chat_histories (
+  id          SERIAL PRIMARY KEY,
+  session_id  VARCHAR(255) NOT NULL,
+  message     JSONB NOT NULL
+);
