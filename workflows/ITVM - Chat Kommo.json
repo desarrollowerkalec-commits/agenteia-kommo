@@ -1,0 +1,1374 @@
+{
+  "name": "ITVM - Chat Kommo",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "itvm-kommo",
+        "options": {}
+      },
+      "id": "bd716179-7134-5049-ae19-44303d5e18f9",
+      "name": "Webhook Kommo",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "827ce741-3282-5dfa-81f0-f39c1a5c7e1e"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3c602e1b-9e7e-5d37-99dd-16de54f2ce5c",
+              "name": "kommo_base_url",
+              "value": "https://SUBDOMINIO.kommo.com",
+              "type": "string"
+            },
+            {
+              "id": "2080d502-2ee8-57a9-8e0e-e583e91104be",
+              "name": "tag_derivado",
+              "value": "ITVM-derivado",
+              "type": "string"
+            },
+            {
+              "id": "21d2d581-262f-5ef7-87f2-52a694b630b3",
+              "name": "status_derivado_id",
+              "value": 0,
+              "type": "number"
+            },
+            {
+              "id": "73da9b06-528d-5d15-9cf7-6d406edea728",
+              "name": "pipeline_id",
+              "value": 0,
+              "type": "number"
+            },
+            {
+              "id": "39cb6458-6b4a-5c24-acb0-332a9cf1d2e7",
+              "name": "campo_respuesta_contacto_id",
+              "value": 0,
+              "type": "number"
+            },
+            {
+              "id": "9cb2c9b6-3338-572b-95ff-283cd7dadb9f",
+              "name": "salesbot_id",
+              "value": 0,
+              "type": "number"
+            },
+            {
+              "id": "b45e63c1-442a-5ff5-a36b-b3aa030fe88a",
+              "name": "segundos_debounce",
+              "value": 8,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {},
+        "includeOtherFields": true
+      },
+      "id": "eee2439b-1408-514c-89b5-c6c751a6c14e",
+      "name": "Config ITVM",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "225a0556-ec60-5c37-82a1-a55dc3ad2300",
+              "name": "message_id",
+              "value": "={{ $json.body['message[add][0][id]'] }}",
+              "type": "string"
+            },
+            {
+              "id": "315144c7-1cdc-5a85-886d-a71a6b1002f7",
+              "name": "chat_id",
+              "value": "={{ $json.body['message[add][0][chat_id]'] }}",
+              "type": "string"
+            },
+            {
+              "id": "f735b509-c5f2-5e5d-afaa-3c29021e6f4d",
+              "name": "element_id",
+              "value": "={{ $json.body['message[add][0][element_id]'] }}",
+              "type": "string"
+            },
+            {
+              "id": "71a9891d-badc-5fb5-8422-2250806a9fc0",
+              "name": "element_type",
+              "value": "={{ $json.body['message[add][0][element_type]'] || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "7ddbcef1-1c2c-5e4d-868a-8d22d9d43980",
+              "name": "contact_id",
+              "value": "={{ $json.body['message[add][0][contact_id]'] || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "7df6d2af-94e6-56ff-b719-1e910f359660",
+              "name": "text",
+              "value": "={{ $json.body['message[add][0][text]'] || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "f7531fab-b9d7-5b3c-84d1-c07712942fbc",
+              "name": "attachment_type",
+              "value": "={{ $json.body['message[add][0][attachment][type]'] || 'text' }}",
+              "type": "string"
+            },
+            {
+              "id": "391c9437-5904-5424-8584-3c66dffcf26d",
+              "name": "attachment_link",
+              "value": "={{ $json.body['message[add][0][attachment][link]'] || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "1e12179f-b41d-5277-9f99-6f190b702dea",
+              "name": "author_name",
+              "value": "={{ $json.body['message[add][0][author][name]'] || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "86c4facd-ce47-5e88-8c3a-43d6d86c2212",
+              "name": "author_type",
+              "value": "={{ $json.body['message[add][0][author][type]'] || 'customer' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0980a541-fe28-5695-8608-769eded7ba03",
+      "name": "Set Campos Mensaje",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO crm.itvm_processed_messages (message_id, chat_id)\nVALUES ($1, $2)\nON CONFLICT (message_id) DO NOTHING\nRETURNING message_id;",
+        "options": {
+          "queryReplacement": "={{ [$('Set Campos Mensaje').first().json.message_id, $('Set Campos Mensaje').first().json.chat_id] }}"
+        }
+      },
+      "id": "f697303b-26ff-55f2-97c5-e9525b3a3acb",
+      "name": "Idempotencia",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "n1",
+              "leftValue": "={{ String($json.message_id || '').length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "33ff7bb2-6860-5ac9-a0a3-17a47888bcef",
+      "name": "Filter Mensaje Nuevo",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "v1",
+              "leftValue": "={{ !['bot','system','user'].includes($('Set Campos Mensaje').first().json.author_type) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "v2",
+              "leftValue": "={{ ($('Set Campos Mensaje').first().json.text || '').trim().length > 0 || ['voice','audio','picture','image','video','file','document'].includes($('Set Campos Mensaje').first().json.attachment_type) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "v3",
+              "leftValue": "={{ (() => { const n = ($('Set Campos Mensaje').first().json.author_name || '').toLowerCase().trim(); const bloqueados = ['itvm','itvm bot','asistente itvm','ai chat','aichat','salesbot','chatbot','bot','sistema','system','.','@']; return n.length > 0 && !bloqueados.includes(n); })() }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "v4",
+              "leftValue": "={{ (() => { const t = String($('Set Campos Mensaje').first().json.text || '').trim(); return !(/^unable to open this message/i.test(t) || /support\\.kommo\\.com/i.test(t)); })() }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0ebf4b31-61fc-52e1-9585-992d16d7a00a",
+      "name": "Filter Mensaje Valido",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "id": "17b97750-0be6-5b94-9191-85d577678b40",
+      "name": "Wait Inicial 2s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        300
+      ],
+      "webhookId": "54a08d7d-b7d6-5b91-b24a-eb1949c73f02"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Config ITVM').first().json.kommo_base_url }}/api/v4/leads/{{ $('Set Campos Mensaje').first().json.element_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "with",
+              "value": "contacts"
+            }
+          ]
+        }
+      },
+      "id": "6b0e39df-484a-545f-8ae7-7752c36941ab",
+      "name": "Get Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "t1",
+              "leftValue": "={{ !((($json._embedded && $json._embedded.tags) || []).some(t => String(t.name || '').toLowerCase() === String($('Config ITVM').first().json.tag_derivado).toLowerCase())) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "434df2f4-3591-53df-ba77-b3b6109efdf3",
+      "name": "Filter Bot Activo",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "r1",
+                    "leftValue": "={{ ($('Set Campos Mensaje').first().json.text || '').trim().toLowerCase() }}",
+                    "rightValue": "^/?(reset|resetear|reiniciar)( todo)?$",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "reset"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "normal"
+        }
+      },
+      "id": "40c08c5a-3cbb-53dd-8278-70fc16b0d34a",
+      "name": "Switch /reset",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1980,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH borrado AS (\n  DELETE FROM itvm_chat_histories WHERE session_id = $1\n)\nUPDATE crm.itvm_buffer SET procesado = true WHERE chat_id = $1 AND NOT procesado;",
+        "options": {
+          "queryReplacement": "={{ [$('Set Campos Mensaje').first().json.chat_id] }}"
+        }
+      },
+      "id": "ab6b0998-9979-5baf-90e7-bfdb87b01a89",
+      "name": "Reset Memoria",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2200,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "67fc7bff-fd13-51be-a582-b04e7f7858e6",
+              "name": "output",
+              "value": "Listo, reinicié la conversación. ¿En qué le puedo ayudar?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0602ffea-f957-5631-9791-c7a233d6e335",
+      "name": "Set Output Reset",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2420,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a1",
+                    "leftValue": "={{ ['voice','audio'].includes($('Set Campos Mensaje').first().json.attachment_type) }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "audio"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "texto"
+        }
+      },
+      "id": "b34d3ff6-36c5-50b1-98da-6d27795e9620",
+      "name": "Switch Tipo",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2200,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Set Campos Mensaje').first().json.attachment_link }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "3890c14c-8707-5581-9e19-abb189a8eda0",
+      "name": "Download Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {
+          "language": "es"
+        }
+      },
+      "id": "8ce6c6d8-ca6f-50ac-9f66-8bbfd79a60fa",
+      "name": "Transcribir Audio",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        2640,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "759d0351-6ec0-5910-af2d-01db993c53e3",
+              "name": "content",
+              "value": "={{ ($json.text || '').trim() || '[El cliente envió un audio que no se pudo transcribir]' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "00403ede-6e5a-580b-9313-b1d6cefc7df4",
+      "name": "Set Audio Text",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f4c38b10-82ac-54c6-9c6e-7b0b3a0074a0",
+              "name": "content",
+              "value": "={{ ($('Set Campos Mensaje').first().json.text || '').trim() || ('[El cliente envió un archivo de tipo ' + $('Set Campos Mensaje').first().json.attachment_type + ' sin texto]') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "97f74815-c94e-57af-85df-626b9017c1c5",
+      "name": "Set Text Content",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2640,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO crm.itvm_buffer (message_id, chat_id, content)\nVALUES ($1, $2, $3)\nON CONFLICT (message_id) DO NOTHING;",
+        "options": {
+          "queryReplacement": "={{ [$('Set Campos Mensaje').first().json.message_id, $('Set Campos Mensaje').first().json.chat_id, $json.content] }}"
+        }
+      },
+      "id": "3f783b05-70df-596c-a09c-241c9bfa6891",
+      "name": "Guardar en Buffer",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3080,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ $('Config ITVM').first().json.segundos_debounce }}",
+        "unit": "seconds"
+      },
+      "id": "a4e8328d-3dca-56e2-8ee0-9fc28ef872e1",
+      "name": "Wait Debounce",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3300,
+        400
+      ],
+      "webhookId": "cc7fdb12-bf43-5f1a-9312-2be630a01edb"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Solo la ejecucion del ULTIMO mensaje pendiente del chat reclama el lote.\nWITH yo AS (\n  SELECT id FROM crm.itvm_buffer WHERE message_id = $1\n), ultimo AS (\n  SELECT max(id) AS id FROM crm.itvm_buffer WHERE chat_id = $2 AND NOT procesado\n)\nUPDATE crm.itvm_buffer b\nSET procesado = true\nFROM yo, ultimo\nWHERE b.chat_id = $2 AND NOT b.procesado AND yo.id = ultimo.id\nRETURNING b.id, b.content;",
+        "options": {
+          "queryReplacement": "={{ [$('Set Campos Mensaje').first().json.message_id, $('Set Campos Mensaje').first().json.chat_id] }}"
+        }
+      },
+      "id": "24763c95-9f43-5535-b675-822ff5a72852",
+      "name": "Reclamar Buffer",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3520,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Si esta ejecucion no era la del ultimo mensaje, no llegan filas y se corta.\nconst filas = $input.all().map(i => i.json).filter(j => j && j.id && j.content);\nif (filas.length === 0) return [];\nfilas.sort((a, b) => Number(a.id) - Number(b.id));\nconst chat_input = filas.map(f => String(f.content).trim()).filter(Boolean).join('\\n');\nreturn [{ json: { chat_input } }];"
+      },
+      "id": "33841a8c-e4fc-54c4-a13c-c040b2219e39",
+      "name": "Unir Mensajes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3740,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chat_input }}",
+        "options": {
+          "systemMessage": "=# QUIEN SOS\n\nSos Sofía, asesora virtual de admisiones de ITVM (Instituto Técnico VM, \"ITVM Liderazgo Automotriz\"), en La Uruca, San José, Costa Rica. Atendés por WhatsApp a personas interesadas en estudiar una carrera técnica o un curso libre.\n\nTu trabajo: entender qué quiere estudiar la persona, darle la información correcta del programa, revisar si cumple los requisitos y, cuando esté lista, pasarla con un asesor humano para que la matricule. No sos una vendedora agresiva: orientás, das confianza y hacés fácil el siguiente paso.\n\n---\n\n# COMO HABLAS\n\n- Español de Costa Rica, cálido y profesional. Tratá de **usted** por defecto. Si la persona le escribe de \"vos\" o de forma muy informal, podés acompañar su tono (el sitio de ITVM usa \"vos\": \"matriculá\", \"podés\").\n- Expresiones naturales: \"con gusto\", \"claro que sí\", \"le cuento\", \"perfecto\", \"excelente\", \"¡pura vida!\" (esta última solo si la persona es informal, y no más de una vez por charla).\n- Respuestas cortas: 2 a 5 líneas. Si entra en 2 líneas, no escriba 6. Un solo mensaje por turno.\n- Sin listas largas ni negritas exageradas. Máximo un emoji por mensaje y solo si la persona usa emojis.\n- NUNCA repitas la misma frase dos veces en un mensaje.\n- Evitá frases de robot: \"según el sistema\", \"en mi base de datos\", \"consultando\", \"procesando su solicitud\", \"como modelo de IA\".\n- Una sola pregunta por mensaje. Nada de interrogatorios.\n\n---\n\n# SALUDO\n\n**Primero mirá si hay una pregunta concreta.** Si el mensaje trae una consulta (una carrera, un precio, requisitos, horarios, ubicación), aunque empiece con \"hola\", respondé lo concreto con una presentación de media línea como mucho: \"Hola, soy Sofía de ITVM. Claro, le cuento…\".\n\nSolo si el mensaje es un saludo sin consulta (\"hola\", \"buenas\", \"buenos días\", \"info\", \"información\"), respondé corto y terminá con UNA pregunta abierta. Ejemplos:\n- \"Hola, ¿cómo está? Soy Sofía, asesora virtual de ITVM. ¿Qué le gustaría estudiar?\"\n- \"¡Buenas! Soy Sofía de ITVM. Con gusto le ayudo, ¿busca una carrera técnica o un curso libre?\"\n\nSi la persona manda un audio, ya te llega transcrito: respondé normal. Si manda solo una imagen o archivo (te llega como \"[El cliente envió ...]\"), decile con amabilidad que no podés verlo y preguntale en qué le podés ayudar.\n\n---\n\n# OFERTA ACADEMICA (resumen para orientar — los detalles SIEMPRE los sacás de la herramienta)\n\n**Carreras técnicas:**\n- Mecánica de Vehículos Livianos (la única acreditada por el INA)\n- Mecánica de Motocicletas y Cuadraciclos (intensivo, 8 meses)\n- Peritaje Automotriz (ITVM es la única institución que la ofrece en grado técnico)\n- Electromecánica\n- Autotrónica\n- Semiconductores\n\n**Cursos libres y capacitaciones:**\n- Inyección electrónica para motocicletas\n- Motores de motocicletas 2 tiempos\n- Electricidad residencial\n- Inyección diésel Common Rail (CRDI)\n- Metrología para la industria médica\n- Manejo y uso de montacargas (capacitación para empresas)\n\nSi la persona no sabe qué estudiar, ayudala a elegir con UNA pregunta sobre lo que le gusta o a qué se quiere dedicar (carros, motos, electrónica, industria, peritaje para aseguradoras...). No le tires las 12 opciones juntas.\n\n---\n\n# HERRAMIENTAS\n\n## 1. \"Consultar oferta academica\"\nUsala SIEMPRE antes de dar duración, modalidad, horarios, requisitos o contenido de un programa. No respondas esos datos de memoria.\n- Input: el nombre del programa o el tema en pocas palabras (\"motos\", \"peritaje\", \"electricidad residencial\", \"diesel\").\n- Para listar todo: \"todos\". Solo carreras: \"carreras\". Solo cursos: \"cursos\".\n- Devuelve los datos del programa: modalidad, duración, horario, requisitos, contenido, links.\n\n## 2. \"Consultar informacion adicional\"\nInformación que el equipo de ITVM actualiza seguido: **precios, fechas de inicio, horarios específicos, promociones, becas, cupos y avisos**. Usala SIEMPRE antes de hablar de precio, costo, mensualidad, matrícula, fecha de inicio o promociones, y cuando te pregunten algo que no esté en este prompt.\n- Si ahí está el dato, usalo tal cual.\n- Si NO está, no lo inventes: \"Ese dato se lo confirma un asesor en el momento de la matrícula\" y seguí orientando.\n- Nunca le digas a la persona que \"consultaste un documento\".\n\n## 3. \"Derivar a asesor\"\nPasa la conversación a un asesor humano: mueve el lead en Kommo y le deja una nota con el resumen. Después de llamarla, el bot deja de responder en este chat, así que tu mensaje en ese turno es el ÚLTIMO.\n\nLlamala cuando:\n- La persona quiere matricularse, reservar un cupo o \"empezar ya\".\n- Pide hablar con una persona, que la llamen, o una cita para conocer las instalaciones.\n- Es una empresa que quiere capacitar a su personal (por ejemplo montacargas).\n- Pregunta algo que solo puede resolver un humano (un caso personal, un trámite, un reclamo, un pago ya hecho, notas o constancias de un estudiante actual).\n- Ya le diste la información del programa y la persona confirma interés claro en avanzar.\n\nNO la llames por un simple \"ok\", \"gracias\" o \"lo voy a pensar\": en esos casos cerrá con amabilidad y dejá la puerta abierta.\n\nAntes de derivar, intentá tener (sin interrogar, solo lo que falte y de a una cosa): **nombre** y **programa de interés**. Si ya los tenés, no los vuelvas a pedir. Si la persona tiene apuro, derivá igual con lo que tengas.\n\nAl llamarla, completá: nombre, programa, horario_preferido (si lo dijo), financiamiento (si preguntó por CONAPE o financiamiento propio), y un resumen de 3 a 6 líneas para el asesor (qué quiere estudiar, si cumple requisitos, dudas pendientes, datos de contacto que haya dado).\n\nEl mensaje que le mandás a la persona en ese turno: confirmá que un asesor de admisiones la va a contactar y mencioná el horario de atención (lunes a sábado de 7:30 a.m. a 9:00 p.m.). Si es fuera de horario, decile que la contactan apenas abra la atención. Ejemplos:\n- \"Perfecto, Laura. Ya le paso sus datos a un asesor de admisiones para que le ayude con la matrícula de Peritaje Automotriz. Le escribe en breve; atendemos de lunes a sábado de 7:30 a.m. a 9:00 p.m.\"\n- \"Con gusto. Un asesor le va a contactar para coordinar la visita a las instalaciones. Nuestro horario es de lunes a sábado de 7:30 a.m. a 9:00 p.m.\"\n\nSi la herramienta devuelve un error, igual despedite con ese mismo mensaje: no le cuentes a la persona que hubo un error.\n\n---\n\n# REGLAS DURAS\n\n1. **Precios:** NUNCA inventes ni estimes montos. Solo los de \"Consultar informacion adicional\". Los montos van en colones (₡). Si no están, \"el asesor le confirma la inversión\".\n2. **Fechas de inicio y cupos:** igual que los precios. Nunca prometas una fecha que no está en la información adicional.\n3. **Links:** solo los que vienen en `url_info` o `url_folleto` de la herramienta, o los links fijos de abajo. Nunca armes ni modifiques una URL.\n4. **Acreditación INA:** solo Mecánica de Vehículos Livianos está acreditada por el INA. No digas que otra carrera tiene título INA. Las demás son programas técnicos de ITVM, con docentes acreditados por el INA. Estudiantes extranjeros que solo tienen pasaporte pueden cursar Vehículos Livianos, pero sin la acreditación INA.\n5. **Requisitos:** si la persona no cumple un requisito (edad, escolaridad), decíselo con tacto y ofrecé una alternativa que sí pueda cursar, si existe. No la descartes: si tiene dudas, que lo confirme con el asesor.\n6. **Menores de edad:** para Vehículos Livianos se admiten desde los 15 años; el menor se presenta con padre, madre o encargado.\n7. **Empleo:** podés decir que ITVM tiene alianzas con empleadores y bolsa de empleo, pero NUNCA garantices trabajo ni salarios.\n8. **No sos asesora mecánica:** si te piden diagnosticar un carro o una moto, explicá con amabilidad que sos del área de admisiones y llevá la charla a los cursos.\n9. **Datos personales:** no pidas cédula, dirección ni datos de pago por chat. Eso lo maneja el asesor.\n10. Si no sabés algo y la herramienta tampoco lo tiene, decilo con naturalidad y ofrecé pasarle con un asesor.\n\n---\n\n# COMO PRESENTAR UN PROGRAMA\n\nCuando ya sabés qué le interesa, consultá la herramienta y respondé en prosa, corto:\n1. Conectá con lo que la persona quiere (\"Para trabajar con motos...\").\n2. Nombre del programa + 1 o 2 datos clave (duración, modalidad u horario).\n3. Un diferencial real (talleres equipados, acreditación INA solo si aplica, única en peritaje, práctica supervisada, horarios flexibles).\n4. Link del folleto o de la página si lo pide o si ayuda.\n5. UNA pregunta para avanzar: \"¿Le gustaría que le cuente los requisitos?\", \"¿Qué horario le serviría más?\", \"¿Desea que un asesor le ayude con la matrícula?\".\n\nEjemplo:\n> \"Para trabajar con motos tenemos el Técnico en Mecánica de Motocicletas, en modalidad intensiva de 8 meses y presencial. Se aprende en taller con docentes acreditados por el INA y hay pasantías opcionales. Aquí tiene el folleto con todo el plan: https://itvm.cr/wp-content/uploads/2025/09/Folleto-Mecanica-de-Motocicletas-Intensivo-2.pdf\n> ¿Le cuento los requisitos de ingreso?\"\n\n---\n\n# FINANCIAMIENTO Y PAGOS\n\n- **CONAPE:** institución estatal que da préstamos para estudios técnicos y superiores. Sitio: https://www.conape.go.cr\n- **Financiamiento propio de ITVM:** mediante letras de cambio. Los detalles los da el asesor.\n- **Formas de pago:** ACAMSYS, SINPE Móvil/transferencia, depósito y tarjeta.\n- **Inversión inicial común a los programas:** gabacha, camisa T-shirt y póliza del INS (el monto lo da la información adicional o el asesor).\n- Matrícula y trámites de pago se pueden hacer en línea.\n\n---\n\n# DATOS DE ITVM (decilos cuando vengan al caso)\n\n- **Dirección:** de Capris en La Uruca, 100 metros norte y 50 metros este, San José. En Waze aparece como \"Instituto Técnico Vargas Matamoros\". Hay parqueo propio y acceso a transporte público.\n- **Horario de atención:** lunes a sábado de 7:30 a.m. a 9:00 p.m.\n- **Teléfonos:** WhatsApp 7107-4722, central 4002-1470.\n- **Correo:** info@itvm.cr\n- **Sitio web:** https://itvm.cr\n- **Financiamiento:** https://itvm.cr/financiamiento/\n- **Beneficios:** horarios diurnos, nocturnos y sábados (según el programa), metodología por competencias (aprender haciendo), aulas y talleres equipados, docentes con experiencia real en la industria y acreditados por el INA, alianzas con empleadores e industria para prácticas supervisadas, bolsa de empleo, Office 365 con Teams gratis durante la carrera, consulta académica y trámites en línea.\n- Más de 10 años de experiencia.\n\n---\n\n# OBJECIONES COMUNES\n\n- **\"Está caro\" / \"no tengo plata\":** reconocé el punto y mencioná CONAPE y el financiamiento propio con letras de cambio. Ofrecé que un asesor le explique las opciones.\n- **\"No tengo tiempo\":** contale de los horarios nocturnos y de sábados (según el programa) y de las modalidades híbridas.\n- **\"¿Sirve para conseguir trabajo?\":** hablá de la práctica supervisada, las alianzas con empleadores y la bolsa de empleo, sin garantizar nada.\n- **\"¿Puedo ir a conocer?\":** sí; ofrecé que un asesor coordine la visita (eso es derivar).\n- **\"Lo voy a pensar\":** respetalo, dejale el link del folleto y decile que puede escribir cuando quiera.\n\n---\n\n# RECORDATORIO FINAL\n\nTu objetivo es que la persona se sienta bien orientada y que, cuando llegue al asesor, ya sepa qué programa quiere y que cumple los requisitos. Calidad de la conversación > velocidad. Ante la duda sobre un dato: herramienta primero, y si no está, asesor. Nunca inventes.\n\n---\n\n# CONTEXTO DE ESTE MENSAJE\n- Fecha y hora actual en Costa Rica: {{ $now.setZone('America/Costa_Rica').setLocale('es').toFormat('cccc d \\'de\\' LLLL \\'de\\' yyyy, HH:mm') }}\n- Nombre que figura en el chat: {{ $('Set Campos Mensaje').first().json.author_name || 'desconocido' }}\n",
+          "maxIterations": 8
+        }
+      },
+      "id": "5b22b58e-13c0-5675-a950-c23d23377153",
+      "name": "Agente ITVM",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        3960,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.4-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5.4-mini"
+        },
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "id": "3d147d9f-621d-50ea-8198-30550ce31f33",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        3820,
+        640
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Set Campos Mensaje').first().json.chat_id }}",
+        "tableName": "itvm_chat_histories",
+        "contextWindowLength": 20
+      },
+      "id": "8b800024-e1c0-5e5d-aaf2-06389e4c0af8",
+      "name": "Postgres Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        3960,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Devuelve la informacion oficial de las carreras tecnicas y cursos libres de ITVM: modalidad, duracion, horario, requisitos, contenido y links (pagina y folleto PDF). Usala SIEMPRE antes de dar esos datos. Input 'consulta': nombre del programa o tema en pocas palabras (ej 'motos', 'peritaje', 'electricidad residencial', 'diesel'), o 'todos', 'carreras' o 'cursos' para listar.",
+        "workflowId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "ITVM - Consultar oferta academica"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "consulta": "={{ $fromAI('consulta', `Programa o tema a consultar, o 'todos' / 'carreras' / 'cursos'`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "consulta",
+              "displayName": "consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "682f3360-290e-52fd-8ac9-1349ec5b7385",
+      "name": "Consultar oferta academica",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        4100,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Devuelve la informacion que el equipo de ITVM actualiza seguido: precios, fechas de inicio, horarios especificos, promociones, becas, cupos y avisos. Usala SIEMPRE antes de hablar de precios, costos, matricula, fechas de inicio o promociones, y cuando te pregunten algo que no este en tus instrucciones.",
+        "workflowId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "ITVM - Consultar info adicional"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "tema": "={{ $fromAI('tema', `Tema que se quiere consultar, en pocas palabras`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "tema",
+              "displayName": "tema",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "1b67179c-4152-588a-9c47-66cfa5107136",
+      "name": "Consultar informacion adicional",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        4240,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Pasa la conversacion a un asesor humano de admisiones: mueve el lead en Kommo, le agrega la etiqueta de derivado y deja una nota con el resumen. Despues de esto el bot deja de responder en este chat. Usala cuando la persona quiere matricularse, pide hablar con una persona o visitar el instituto, es una empresa, o necesita algo que solo resuelve un humano.",
+        "workflowId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "ITVM - Derivar a asesor"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "nombre": "={{ $fromAI('nombre', `Nombre de la persona, si lo dio. Vacio si no`, 'string') }}",
+            "programa": "={{ $fromAI('programa', `Programa de interes, ej 'Tecnico en Peritaje Automotriz'`, 'string') }}",
+            "horario_preferido": "={{ $fromAI('horario_preferido', `Horario que prefiere (diurno, nocturno, sabados), si lo dijo`, 'string') }}",
+            "financiamiento": "={{ $fromAI('financiamiento', `Si pregunto por financiamiento (CONAPE o propio) y que dijo. Vacio si no`, 'string') }}",
+            "resumen": "={{ $fromAI('resumen', `Resumen de 3 a 6 lineas para el asesor: que quiere, si cumple requisitos, dudas pendientes y datos de contacto que dio`, 'string') }}",
+            "lead_id": "={{ $('Set Campos Mensaje').first().json.element_id }}",
+            "kommo_base_url": "={{ $('Config ITVM').first().json.kommo_base_url }}",
+            "status_derivado_id": "={{ $('Config ITVM').first().json.status_derivado_id }}",
+            "pipeline_id": "={{ $('Config ITVM').first().json.pipeline_id }}",
+            "tag_derivado": "={{ $('Config ITVM').first().json.tag_derivado }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "nombre",
+              "displayName": "nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "programa",
+              "displayName": "programa",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "horario_preferido",
+              "displayName": "horario_preferido",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "financiamiento",
+              "displayName": "financiamiento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "resumen",
+              "displayName": "resumen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "lead_id",
+              "displayName": "lead_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "kommo_base_url",
+              "displayName": "kommo_base_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status_derivado_id",
+              "displayName": "status_derivado_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "pipeline_id",
+              "displayName": "pipeline_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "tag_derivado",
+              "displayName": "tag_derivado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "d638f195-c0ec-53c2-9d5b-054d52a8f944",
+      "name": "Derivar a asesor",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        4380,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $('Get Lead').first().json || {};\nconst contactos = (lead._embedded && lead._embedded.contacts) || [];\nconst principal = contactos.find(c => c.is_main) || contactos[0];\nconst contact_id = (principal && principal.id) || Number($('Set Campos Mensaje').first().json.contact_id) || null;\nlet output = String($json.output || '').trim();\nif (!output) return [];\n// Kommo/WhatsApp no renderizan markdown de titulos ni negritas dobles.\noutput = output.replace(/\\*\\*(.+?)\\*\\*/g, '*$1*').replace(/^#+\\s*/gm, '');\nreturn [{ json: { output, contact_id } }];"
+      },
+      "id": "31d69fdc-e316-59e1-852e-9fba0640347a",
+      "name": "Preparar Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ !!$json.contact_id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4d248811-cfcc-5ca1-a868-52b35caee812",
+      "name": "Filter Tiene Contacto",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        4540,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $('Config ITVM').first().json.kommo_base_url }}/api/v4/contacts/{{ $json.contact_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ custom_fields_values: [{ field_id: Number($('Config ITVM').first().json.campo_respuesta_contacto_id), values: [{ value: $json.output }] }] }) }}"
+      },
+      "id": "ab94c156-df4d-53d4-b1ae-0540679b4b81",
+      "name": "Guardar Respuesta en Contacto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "id": "d4134397-b1c8-5ffa-a512-c0aeaba308d7",
+      "name": "Wait Propagacion",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4980,
+        300
+      ],
+      "webhookId": "c0e375bd-6b38-59d3-8887-4376348619ec"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config ITVM').first().json.kommo_base_url }}/api/v2/salesbot/run",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify([{ bot_id: Number($('Config ITVM').first().json.salesbot_id), entity_id: Number($('Preparar Respuesta').first().json.contact_id), entity_type: 1 }]) }}"
+      },
+      "id": "522ccb41-8bb5-50fb-b71f-7aca2320acd5",
+      "name": "Run Salesbot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5200,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Kommo": {
+      "main": [
+        [
+          {
+            "node": "Config ITVM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config ITVM": {
+      "main": [
+        [
+          {
+            "node": "Set Campos Mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Campos Mensaje": {
+      "main": [
+        [
+          {
+            "node": "Idempotencia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Idempotencia": {
+      "main": [
+        [
+          {
+            "node": "Filter Mensaje Nuevo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Mensaje Nuevo": {
+      "main": [
+        [
+          {
+            "node": "Filter Mensaje Valido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Mensaje Valido": {
+      "main": [
+        [
+          {
+            "node": "Wait Inicial 2s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Inicial 2s": {
+      "main": [
+        [
+          {
+            "node": "Get Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Lead": {
+      "main": [
+        [
+          {
+            "node": "Filter Bot Activo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Bot Activo": {
+      "main": [
+        [
+          {
+            "node": "Switch /reset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reset Memoria": {
+      "main": [
+        [
+          {
+            "node": "Set Output Reset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Output Reset": {
+      "main": [
+        [
+          {
+            "node": "Preparar Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Audio": {
+      "main": [
+        [
+          {
+            "node": "Transcribir Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribir Audio": {
+      "main": [
+        [
+          {
+            "node": "Set Audio Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Audio Text": {
+      "main": [
+        [
+          {
+            "node": "Guardar en Buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Text Content": {
+      "main": [
+        [
+          {
+            "node": "Guardar en Buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar en Buffer": {
+      "main": [
+        [
+          {
+            "node": "Wait Debounce",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Debounce": {
+      "main": [
+        [
+          {
+            "node": "Reclamar Buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reclamar Buffer": {
+      "main": [
+        [
+          {
+            "node": "Unir Mensajes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unir Mensajes": {
+      "main": [
+        [
+          {
+            "node": "Agente ITVM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente ITVM": {
+      "main": [
+        [
+          {
+            "node": "Preparar Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Filter Tiene Contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Tiene Contacto": {
+      "main": [
+        [
+          {
+            "node": "Guardar Respuesta en Contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Respuesta en Contacto": {
+      "main": [
+        [
+          {
+            "node": "Wait Propagacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Propagacion": {
+      "main": [
+        [
+          {
+            "node": "Run Salesbot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch /reset": {
+      "main": [
+        [
+          {
+            "node": "Reset Memoria",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch Tipo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Tipo": {
+      "main": [
+        [
+          {
+            "node": "Download Audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Text Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente ITVM",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agente ITVM",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar oferta academica": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente ITVM",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar informacion adicional": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente ITVM",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Derivar a asesor": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente ITVM",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "cliente:itvm"
+    }
+  ]
+}
