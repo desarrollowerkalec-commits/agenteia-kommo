@@ -856,6 +856,26 @@ def wf_sync_planilla():
     return w
 
 
+# ---------------------------------------------------------------------------
+# 6) Setup DB: crea las tablas y carga los programas (se ejecuta una vez a mano)
+# ---------------------------------------------------------------------------
+def wf_setup_db():
+    sql = "\n\n".join((RAIZ / "sql" / f).read_text(encoding="utf-8")
+                       for f in ["001_esquema.sql", "002_programas_seed.sql"])
+    N, C = [], {}
+    N.append(nodo("Ejecutar una vez", "n8n-nodes-base.manualTrigger", 1, (0, 300), {}))
+    N.append(pg(sql, nombre="Crear Tablas y Programas", pos=(220, 300)))
+    N.append(pg(
+        "SELECT (SELECT count(*) FROM crm.itvm_programas) AS programas,\n"
+        "       (SELECT count(*) FROM crm.itvm_bot_config) AS config,\n"
+        "       to_regclass('crm.itvm_buffer') IS NOT NULL AS buffer_ok,\n"
+        "       to_regclass('crm.itvm_processed_messages') IS NOT NULL AS idempotencia_ok;",
+        nombre="Verificar", pos=(440, 300)))
+    conectar(C, "Ejecutar una vez", "Crear Tablas y Programas")
+    conectar(C, "Crear Tablas y Programas", "Verificar")
+    return workflow("ITVM - Setup DB", N, C)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--nombre-agente", default="Sofía")
@@ -871,7 +891,7 @@ def main():
 
     ids = {"oferta": a.id_oferta, "info": a.id_info, "derivar": a.id_derivar}
     SALIDA.mkdir(exist_ok=True)
-    for wf in [wf_chat(prompt, ids), wf_oferta(), wf_info(), wf_derivar(), wf_sync_planilla()]:
+    for wf in [wf_chat(prompt, ids), wf_oferta(), wf_info(), wf_derivar(), wf_sync_planilla(), wf_setup_db()]:
         destino = SALIDA / (wf["name"] + ".json")
         destino.write_text(json.dumps(wf, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print("generado:", destino.relative_to(RAIZ))

@@ -20,6 +20,7 @@ workflows/                      Workflows listos para importar en n8n
   ITVM - Consultar info adicional.json    Tool: precios, horarios, promos y preguntas frecuentes
   ITVM - Derivar a asesor.json            Tool: mueve el lead a la etapa de derivación, etiqueta, resumen y nota
   ITVM - Sync Planilla.json               Cron: Google Sheet → base de datos, y limpieza
+  ITVM - Setup DB.json                    Manual: crea las tablas y carga los programas (una sola vez)
 sql/001_esquema.sql             Tablas (prefijo crm.itvm_*)
 sql/002_programas_seed.sql      Oferta académica relevada de itvm.cr (contenido de cada programa)
 docs/ITVM - Planilla asistente virtual.xlsx   Planilla original que se le pasó a ITVM
@@ -87,7 +88,9 @@ El workflow **"ITVM - Sync Planilla"** la lee cada 2 horas, de 6 a 22 h (hora de
 
 ### 1. Base de datos
 
-En el Postgres que usa n8n (o en otro):
+La forma más simple: importá **"ITVM - Setup DB"**, elegí la credencial de Postgres y ejecutalo una vez. El nodo "Verificar" tiene que mostrar `programas = 12`. Se puede volver a ejecutar sin problema.
+
+O, si tenés acceso directo a la base:
 
 ```bash
 psql "$DATABASE_URL" -f sql/001_esquema.sql
