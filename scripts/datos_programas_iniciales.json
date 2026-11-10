@@ -1,0 +1,110 @@
+[
+ {
+  "nombre": "Técnico en Mecánica de Vehículos Livianos",
+  "dirigido_a": "Personas que quieren formarse como técnicos en mecánica automotriz.",
+  "contenido": "Fundamentos de mecánica; electricidad y electrónica; frenos; suspensión; dirección; transmisión I y II; mecánica interna y laboratorio; circuitos eléctricos; manejo de residuos en talleres; redes de comunicación multiplexadas; encendido electrónico; inyección a gasolina; inyección diésel I y II; electrónica digital; introducción a vehículos híbridos y eléctricos; propulsión de alta tensión; conversión de vehículos de combustión a eléctricos; práctica didáctica supervisada.",
+  "notas": "Metodología por competencias (aprender haciendo). 5 talleres equipados: frenos/suspensión/dirección (elevador, prensa hidráulica, torno de rotores), afinamiento (motores gasolina y diésel funcionando, maquetas common rail), mecánica interna y transmisión, electricidad y electrónica, y soldadura. Práctica supervisada con empresas aliadas.",
+  "palabras_clave": "mecanica automotriz carro carros auto autos vehiculo vehiculos livianos mecanico taller ina acreditada hibridos electricos",
+  "url_info": "https://itvm.cr/mecanica-de-vehiculos-livianos/",
+  "orden": 10
+ },
+ {
+  "nombre": "Técnico en Mecánica de Motocicletas (intensivo)",
+  "dirigido_a": "Personas que quieren trabajar en diagnóstico, reparación y mantenimiento de motocicletas.",
+  "contenido": "Mecánica de motocicletas (motores, transmisiones manuales, automáticas y semiautomáticas, frenos, suspensión y dirección); electricidad y electrónica; seguridad vial; mantenimiento preventivo; tecnología de motores (2 y 4 tiempos, inyección y carburación); dinámica de motocicletas; diagnóstico y reparación de averías.",
+  "notas": "Pasantías opcionales. El mercado de motocicletas creció mucho en el país en los últimos años.",
+  "palabras_clave": "moto motos motocicleta motocicletas cuadraciclo cuadraciclos mecanica de motos intensivo",
+  "url_info": "https://itvm.cr/mecanica-de-motocicletas/",
+  "orden": 20
+ },
+ {
+  "nombre": "Técnico en Peritaje Automotriz",
+  "dirigido_a": "Personas interesadas en análisis y evaluación de vehículos: investigación de accidentes, inspecciones de calidad, valoraciones para aseguradoras.",
+  "contenido": "Introducción a la carrocería; enderezado; mecánica aplicada al peritaje; servicio al cliente; seguros de automóviles; inglés técnico para peritaje; pintura y control de calidad; técnica pericial; valoración de siniestros I y II; práctica supervisada.",
+  "notas": null,
+  "palabras_clave": "peritaje perito peritos aseguradora seguros siniestros avaluo valoracion accidentes carroceria",
+  "url_info": "https://itvm.cr/peritaje-automotriz/",
+  "orden": 30
+ },
+ {
+  "nombre": "Técnico en Electromecánica",
+  "dirigido_a": "Personas que quieren trabajar en mantenimiento e instalación de maquinaria y equipos industriales.",
+  "contenido": "Módulo general: matemática aplicada, mantenimiento, seguridad industrial. Módulo mecánico: mecánica general, dibujo técnico, interpretación de planos, sistema de unidades, equipos de medición, herramientas básicas, soldadura, trazo/corte/pulido, taladrado, galgas y roscas, ajuste y tolerancia. Módulo eléctrico: electricidad general, electrónica industrial, planos eléctricos y de control, máquinas eléctricas. Eje transversal: habilidades para el trabajo.",
+  "notas": "Pasantías opcionales.",
+  "palabras_clave": "electromecanica electromecanico industrial mantenimiento industrial maquinaria soldadura planos",
+  "url_info": "https://itvm.cr/electromecanica/",
+  "orden": 40
+ },
+ {
+  "nombre": "Técnico en Autotrónica",
+  "dirigido_a": "Personas que quieren una base sólida en electricidad y electrónica aplicada a sistemas automotrices.",
+  "contenido": "Módulo I: seguridad, fundamentos de electricidad y electrónica, componentes y circuitos. Módulo II: sensores y actuadores, gestión del motor, inyección electrónica (EFI, Common Rail), encendido electrónico, control de emisiones. Módulo III: redes CAN bus, LIN bus, FlexRay, diagnóstico de redes, multímetro, osciloscopio y escáner. Módulo IV: confort y seguridad electrónica (audio, navegación, iluminación, airbags, ABS, control de tracción).",
+  "notas": null,
+  "palabras_clave": "autotronica electronica automotriz electrico automotriz escaner diagnostico computadora carro sensores can bus",
+  "url_info": "https://itvm.cr/autotronica/",
+  "orden": 50
+ },
+ {
+  "nombre": "Técnico en Semiconductores",
+  "dirigido_a": "Personas interesadas en electrónica y en la industria de semiconductores.",
+  "contenido": "Módulo 1: introducción a la electrónica, circuitos básicos, electrónica analógica I, electrónica digital I. Módulo 2: electrónica analógica II, electrónica digital II (microcontroladores, Arduino), electrónica de potencia, diseño electrónico (PCB). Módulo 3: manufactura de semiconductores, dispositivos semiconductores, aplicaciones industriales (renovables, médica, 5G/IoT, aeroespacial), tendencias de la industria.",
+  "notas": null,
+  "palabras_clave": "semiconductores semiconductor chips electronica microcontroladores arduino pcb manufactura",
+  "url_info": "https://itvm.cr/semiconductores/",
+  "orden": 60
+ },
+ {
+  "nombre": "Inyección electrónica para motocicletas",
+  "dirigido_a": "Técnicos o mecánicos con experiencia en reparación de motocicletas que quieren especializarse en inyección electrónica.",
+  "contenido": "Comunicación binaria; motor en V y lineal; circuitos eléctricos; leyes de Kirchhoff y Ohm; componentes pasivos y activos; transistores; señales digitales y análogas; compuertas lógicas; diagramas eléctricos; circuitos integrados; sensores y actuadores; uso de escáner.",
+  "notas": null,
+  "palabras_clave": "inyeccion motos inyeccion electronica motocicleta fuel injection escaner motos",
+  "url_info": "https://itvm.cr/cursos-libres/",
+  "orden": 110
+ },
+ {
+  "nombre": "Motores de motocicletas 2 tiempos",
+  "dirigido_a": "Técnicos o mecánicos de motocicletas que quieren especializarse en motores 2 tiempos.",
+  "contenido": "Puesta a punto y carburación; válvula de poder YPVS y KIPS; válvula rotativa; alteraciones a motores (cárter, volante, lumbreras); tiempo electrónico; adaptaciones de sistemas de encendido.",
+  "notas": null,
+  "palabras_clave": "dos tiempos 2 tiempos 2t motores 2 tiempos carburacion motos",
+  "url_info": "https://itvm.cr/cursos-libres/",
+  "orden": 120
+ },
+ {
+  "nombre": "Electricidad residencial",
+  "dirigido_a": "Personas que quieren aprender instalaciones eléctricas residenciales, interpretación de planos y código eléctrico nacional.",
+  "contenido": "Seguridad; teoría eléctrica (voltaje, corriente, resistencia, potencia, Ley de Ohm); circuitos serie, paralelo y mixtos; simbología; conductores; multímetro; cálculos de voltaje, corriente, potencia, conductores, acometidas y caídas de tensión; balanceo de cargas; centros de carga y disyuntores; ramales de luminarias y tomacorrientes; apagadores de 3 y 4 vías; planos; gabinetes y normas NEMA; tipos de lámparas y tomacorrientes; mantenimiento predictivo, preventivo y correctivo.",
+  "notas": null,
+  "palabras_clave": "electricidad electricista residencial instalaciones electricas casa planos electricos",
+  "url_info": "https://itvm.cr/cursos-libres/",
+  "orden": 130
+ },
+ {
+  "nombre": "Inyección diésel Common Rail (CRDI)",
+  "dirigido_a": "Mecánicos que quieren especializarse en sistemas diésel de inyección directa.",
+  "contenido": "Composición de la atmósfera; fundamentos de motores de combustión interna y diésel; inyección convencional (bomba lineal y rotativa); sistema de inyección; sensores y actuadores; alta y baja presión; inyección Bosch, Denso y Lucas; prácticas en taller.",
+  "notas": null,
+  "palabras_clave": "diesel common rail crdi inyeccion diesel bomba inyectora camiones",
+  "url_info": "https://itvm.cr/cursos-libres/",
+  "orden": 140
+ },
+ {
+  "nombre": "Metrología para la industria médica",
+  "dirigido_a": "Personas que quieren trabajar en medición, calibración y control de calidad de equipos médicos.",
+  "contenido": "Fundamentos de metrología; instrumentación médica; calibración y validación de equipos médicos; control de calidad (ISO 9001, ISO 13485, ISO 14644); metrología dimensional y geométrica; metrología óptica; bioinstrumentación; gestión de proyectos y documentación; ética y regulación.",
+  "notas": null,
+  "palabras_clave": "metrologia calibracion medicion dispositivos medicos industria medica zona franca calidad iso",
+  "url_info": "https://itvm.cr/cursos-libres/",
+  "orden": 150
+ },
+ {
+  "nombre": "Manejo y uso de montacargas",
+  "dirigido_a": "Funcionarios de empresas que operan montacargas.",
+  "contenido": "Seguridad, normativa y fundamentos del equipo (1 h); operación y técnicas de manejo (1 h); mantenimiento y cuidados (2 h); práctica en campo (8 h).",
+  "notas": "Ideal para empresas que quieren capacitar a su personal: derivar a un asesor para coordinar grupo y fechas.",
+  "palabras_clave": "montacargas montacarga forklift licencia d3 empresas capacitacion bodega",
+  "url_info": "https://itvm.cr/cursos-libres/",
+  "orden": 160
+ }
+]
