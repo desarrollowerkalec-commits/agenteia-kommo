@@ -41,7 +41,7 @@
           ]
         }
       },
-      "id": "cb3b4d47-b1ac-5af9-aa84-666659daa620",
+      "id": "8f639b0e-d5dc-597f-bbd0-63e3dbbddc17",
       "name": "When Executed by Another Workflow",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -63,7 +63,7 @@
           }
         }
       },
-      "id": "8f639b0e-d5dc-597f-bbd0-63e3dbbddc17",
+      "id": "cfa254f1-f508-59f8-8f66-fb4097706c49",
       "name": "Get Etapas",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -78,7 +78,7 @@
       "parameters": {
         "jsCode": "const i = $('When Executed by Another Workflow').first().json;\nconst limpio = v => String(v || '').trim();\nconst norm = v => limpio(v).toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\nconst body = { tags_to_add: [{ name: limpio(i.tag_derivado) || 'ITVM-derivado' }] };\nconst etapas = (($input.first().json || {})._embedded || {}).statuses || [];\nconst etapa = etapas.find(e => norm(e.name) === norm(i.nombre_etapa_derivado));\nif (etapa) body.status_id = etapa.id;\nconst campoResumen = Number(i.campo_resumen_lead_id) || 0;\nconst textoResumen = [limpio(i.programa) && ('Programa: ' + limpio(i.programa)), limpio(i.horario_preferido) && ('Horario: ' + limpio(i.horario_preferido)), limpio(i.financiamiento) && ('Financiamiento: ' + limpio(i.financiamiento)), limpio(i.resumen)].filter(Boolean).join('\\n');\nif (campoResumen > 0 && textoResumen) body.custom_fields_values = [{ field_id: campoResumen, values: [{ value: textoResumen }] }];\nconst lineas = [\n  'Derivado por el asistente IA de ITVM',\n  limpio(i.nombre) && ('Nombre: ' + limpio(i.nombre)),\n  limpio(i.programa) && ('Programa: ' + limpio(i.programa)),\n  limpio(i.horario_preferido) && ('Horario preferido: ' + limpio(i.horario_preferido)),\n  limpio(i.financiamiento) && ('Financiamiento: ' + limpio(i.financiamiento)),\n  limpio(i.resumen) && ('Resumen:\\n' + limpio(i.resumen)),\n].filter(Boolean);\nconst base = limpio(i.kommo_base_url).replace(/\\/$/, '');\nreturn [{ json: { base, lead_id: limpio(i.lead_id), body, nota: lineas.join('\\n') } }];"
       },
-      "id": "cfa254f1-f508-59f8-8f66-fb4097706c49",
+      "id": "98ecc585-3e1e-5863-9138-cd5b59eb33d2",
       "name": "Armar Cambios",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -104,7 +104,7 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.body) }}"
       },
-      "id": "98ecc585-3e1e-5863-9138-cd5b59eb33d2",
+      "id": "e14be92d-0c94-5d9b-a989-618ac688d909",
       "name": "Actualizar Lead",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -131,7 +131,7 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify([{ note_type: 'common', params: { text: $('Armar Cambios').first().json.nota } }]) }}"
       },
-      "id": "e14be92d-0c94-5d9b-a989-618ac688d909",
+      "id": "ac078d58-c464-5ad0-973b-9f1e0360dbb5",
       "name": "Agregar Nota",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -146,13 +146,13 @@
         "assignments": {
           "assignments": [
             {
-              "id": "ac078d58-c464-5ad0-973b-9f1e0360dbb5",
+              "id": "f4663b40-a60f-5010-8cdb-51ecb1c3d893",
               "name": "ok",
               "value": "true",
               "type": "boolean"
             },
             {
-              "id": "f4663b40-a60f-5010-8cdb-51ecb1c3d893",
+              "id": "d1b3f13d-91bd-596b-9fd9-98cfb0f7d8af",
               "name": "mensaje",
               "value": "Listo: el lead quedo derivado a un asesor. Despedite confirmando que un asesor le contacta y el horario de atencion.",
               "type": "string"
@@ -161,7 +161,7 @@
         },
         "options": {}
       },
-      "id": "d1b3f13d-91bd-596b-9fd9-98cfb0f7d8af",
+      "id": "4f3a0833-4180-5eda-a3bb-5b7589212296",
       "name": "Resultado OK",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -175,13 +175,13 @@
         "assignments": {
           "assignments": [
             {
-              "id": "4f3a0833-4180-5eda-a3bb-5b7589212296",
+              "id": "44e967f1-4bbd-57be-8894-382a9acd0b9b",
               "name": "ok",
               "value": "false",
               "type": "boolean"
             },
             {
-              "id": "44e967f1-4bbd-57be-8894-382a9acd0b9b",
+              "id": "22385506-166b-513a-976a-df58001318e6",
               "name": "mensaje",
               "value": "No se pudo registrar la derivacion en el CRM. Igual decile a la persona que un asesor le contacta, sin mencionar el error.",
               "type": "string"
@@ -190,7 +190,7 @@
         },
         "options": {}
       },
-      "id": "22385506-166b-513a-976a-df58001318e6",
+      "id": "176af89d-8343-5255-a362-83dbcc777519",
       "name": "Resultado Error",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,

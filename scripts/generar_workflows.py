@@ -7,7 +7,6 @@ volve a correr este script y reimporta "ITVM - Chat Kommo" en n8n.
 
 Uso:
   python3 scripts/generar_workflows.py \
-      --nombre-agente "Sofía" \
       --id-oferta  <ID workflow "ITVM - Consultar oferta academica"> \
       --id-info    <ID workflow "ITVM - Consultar info adicional"> \
       --id-derivar <ID workflow "ITVM - Derivar a asesor">
@@ -367,10 +366,16 @@ def wf_chat(prompt, ids):
         + "\n\n---\n\n# CONTEXTO DE ESTE MENSAJE\n"
         + "- Fecha y hora actual en Costa Rica: {{ $now.setZone('America/Costa_Rica').setLocale('es').toFormat('cccc d \\'de\\' LLLL \\'de\\' yyyy, HH:mm') }}\n"
         + "- Nombre que figura en el chat: {{ " + MSG + ".author_name || 'desconocido' }}\n"
+        + "\n---\n\n# INSTRUCCIONES DEL NEGOCIO (documento que mantiene ITVM)\n\n"
+        + "{{ String($('Leer Instrucciones').first().json.instrucciones || '').trim() || "
+        + "'No hay instrucciones cargadas. Presentate como el asistente virtual de admisiones de ITVM, trata de usted y deriva a un asesor cuando quieran matricularse.' }}\n"
     )
-    add(nodo("Agente ITVM", "@n8n/n8n-nodes-langchain.agent", 1.9, (3960, 400), {
+    # Instrucciones del negocio (Word/Google Doc de ITVM, sincronizado por "ITVM - Sync Planilla").
+    add(pg("SELECT instrucciones FROM crm.itvm_bot_config WHERE id = 1;",
+           nombre="Leer Instrucciones", pos=(3850, 400), alwaysOutputData=True, onError="continueRegularOutput"))
+    add(nodo("Agente ITVM", "@n8n/n8n-nodes-langchain.agent", 1.9, (4070, 400), {
         "promptType": "define",
-        "text": "={{ $json.chat_input }}",
+        "text": "={{ $('Unir Mensajes').first().json.chat_input }}",
         "options": {"systemMessage": system_message, "maxIterations": 8},
     }))
     add(nodo("OpenAI Chat Model", "@n8n/n8n-nodes-langchain.lmChatOpenAi", 1.2, (3820, 640), {
@@ -459,7 +464,7 @@ def wf_chat(prompt, ids):
         ("Download Audio", "Transcribir Audio"), ("Transcribir Audio", "Set Audio Text"),
         ("Set Audio Text", "Guardar en Buffer"), ("Set Text Content", "Guardar en Buffer"),
         ("Guardar en Buffer", "Wait Debounce"), ("Wait Debounce", "Reclamar Buffer"),
-        ("Reclamar Buffer", "Unir Mensajes"), ("Unir Mensajes", "Agente ITVM"),
+        ("Reclamar Buffer", "Unir Mensajes"), ("Unir Mensajes", "Leer Instrucciones"), ("Leer Instrucciones", "Agente ITVM"),
         ("Agente ITVM", "Preparar Respuesta"), ("Preparar Respuesta", "Filter Tiene Lead"),
         ("Filter Tiene Lead", "Guardar Respuesta en Lead"),
         ("Guardar Respuesta en Lead", "Wait Propagacion"), ("Wait Propagacion", "Run Salesbot"),
@@ -626,6 +631,37 @@ def wf_derivar():
 # 5) Sync Planilla (Google Sheets -> itvm_bot_config + itvm_programas) + limpieza
 # ---------------------------------------------------------------------------
 SHEET_ID = "1YZqpfdGdRLp2OH683OvN3NZUjd0D_N27"
+# ID del Google Doc "ITVM - Instrucciones del asistente" (debe estar guardado como Documento de Google,
+# no como .docx, y compartido como "cualquier persona con el enlace puede ver").
+DOC_ID = "PEGAR_ID_DEL_DOCUMENTO"
+
+JS_EXTRAER_DOC = r"""
+let texto = String($input.first().json.data || '');
+// En HTML los saltos de linea no significan nada: se unen las lineas de cada parrafo.
+texto = texto.replace(/[ \t]*[\r\n]+[ \t]*/g, ' ');
+texto = texto
+  .replace(/<style[\s\S]*?<\/style>/gi, '')
+  .replace(/<script[\s\S]*?<\/script>/gi, '')
+  .replace(/<head[\s\S]*?<\/head>/gi, '')
+  .replace(/<li[^>]*>/gi, '- ')
+  .replace(/<\/(p|li|div|tr|h[1-6])>/gi, '\n')
+  .replace(/<br\s*\/?>/gi, '\n')
+  .replace(/<[^>]+>/g, '');
+const ent = { '&nbsp;': ' ', '&amp;': '&', '&quot;': '"', '&#39;': "'", '&lt;': '<', '&gt;': '>',
+  '&aacute;': 'á', '&eacute;': 'é', '&iacute;': 'í', '&oacute;': 'ó', '&uacute;': 'ú', '&ntilde;': 'ñ',
+  '&Aacute;': 'Á', '&Eacute;': 'É', '&Iacute;': 'Í', '&Oacute;': 'Ó', '&Uacute;': 'Ú', '&Ntilde;': 'Ñ',
+  '&iquest;': '¿', '&iexcl;': '¡', '&mdash;': '—', '&ndash;': '–', '&ldquo;': '"', '&rdquo;': '"' };
+for (const [k, v] of Object.entries(ent)) texto = texto.split(k).join(v);
+texto = texto.replace(/&#(\d+);/g, (m, c) => String.fromCodePoint(parseInt(c, 10)));
+texto = texto.replace(/&#x([0-9a-f]+);/gi, (m, c) => String.fromCodePoint(parseInt(c, 16)));
+texto = texto.replace(/\r\n/g, '\n').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+// Se descartan las ayudas/ejemplos entre parentesis que hayan quedado sin completar.
+texto = texto.split('\n').map(l => l.trim())
+  .filter(l => !/^\((Completar|Ejemplo:|Qu[eé] t[ií]tulo|Cualquier otra cosa)/i.test(l))
+  .join('\n').replace(/\n{3,}/g, '\n\n').trim();
+const login = /accounts\.google|iniciar sesi[oó]n|sign in/i.test(texto.slice(0, 400));
+return [{ json: { texto, largo: texto.length, valido: !login && texto.length >= 80 } }];
+""".strip()
 
 # hoja, rango (desde la fila de encabezados), primer encabezado esperado (valida que la hoja exista:
 # si el nombre no existe, Google devuelve la PRIMERA hoja sin avisar).
@@ -806,13 +842,17 @@ def wf_sync_planilla():
     N, C = [], {}
     N.append(nodo("Cada 2 horas", "n8n-nodes-base.scheduleTrigger", 1.2, (0, 300),
                   {"rule": {"interval": [{"field": "cronExpression", "expression": "0 6-22/2 * * *"}]}}))
-    N.append(nodo("Hojas", "n8n-nodes-base.code", 2, (220, 300), {"jsCode": (
-        "// ID de la planilla de Google Sheets (debe estar compartida: 'cualquier persona con el enlace').\n"
-        "const sheet_id = '" + SHEET_ID + "';\n"
+    N.append(nodo("Config Sync", "n8n-nodes-base.set", 3.4, (110, 300), asignaciones([
+        ("sheet_id", SHEET_ID, "string"),
+        ("doc_id", DOC_ID, "string"),
+    ])))
+    N.append(nodo("Hojas", "n8n-nodes-base.code", 2, (330, 300), {"jsCode": (
+        "// La planilla de Google Sheets debe estar compartida: 'cualquier persona con el enlace'.\n"
+        "const sheet_id = $('Config Sync').first().json.sheet_id;\n"
         "return " + json.dumps([{"hoja": h, "rango": r, "encabezado": e} for h, r, e in HOJAS], ensure_ascii=False)
         + ".map(h => ({ json: { ...h, sheet_id } }));"
     )}))
-    N.append(nodo("Leer Hoja", "n8n-nodes-base.httpRequest", 4.2, (440, 300), {
+    N.append(nodo("Leer Hoja", "n8n-nodes-base.httpRequest", 4.2, (550, 300), {
         "url": "=https://docs.google.com/spreadsheets/d/{{ $json.sheet_id }}/gviz/tq",
         "sendQuery": True,
         "queryParameters": {"parameters": [
@@ -843,7 +883,28 @@ def wf_sync_planilla():
         "DELETE FROM crm.itvm_buffer WHERE creado_en < now() - interval '7 days';\n"
         "DELETE FROM crm.itvm_processed_messages WHERE creado_en < now() - interval '30 days';",
         nombre="Limpiar Tablas", pos=(220, 520)))
-    conectar(C, "Cada 2 horas", "Hojas")
+    conectar(C, "Cada 2 horas", "Config Sync")
+    conectar(C, "Config Sync", "Hojas")
+    # --- Documento de instrucciones (Google Doc)
+    N.append(nodo("Leer Documento", "n8n-nodes-base.httpRequest", 4.2, (330, 740), {
+        "url": "=https://docs.google.com/document/d/{{ $json.doc_id }}/mobilebasic",
+        "options": {"response": {"response": {"responseFormat": "text"}}},
+    }, retryOnFail=True, maxTries=3, waitBetweenTries=5000, onError="continueRegularOutput"))
+    N.append(nodo("Extraer Texto Documento", "n8n-nodes-base.code", 2, (550, 740), {"jsCode": JS_EXTRAER_DOC}))
+    N.append(nodo("Filter Documento OK", "n8n-nodes-base.filter", 2.2, (770, 740), filtro([
+        # Si el documento no se pudo leer, se mantienen las instrucciones anteriores.
+        cond_bool("d1", "={{ $json.valido === true }}"),
+    ])))
+    N.append(pg(
+        "INSERT INTO crm.itvm_bot_config (id, instrucciones, instrucciones_actualizado_en)\n"
+        "VALUES (1, $1, now())\n"
+        "ON CONFLICT (id) DO UPDATE SET instrucciones = EXCLUDED.instrucciones, instrucciones_actualizado_en = now();",
+        "={{ [$json.texto] }}",
+        nombre="Guardar Instrucciones", pos=(990, 740)))
+    conectar(C, "Config Sync", "Leer Documento")
+    conectar(C, "Leer Documento", "Extraer Texto Documento")
+    conectar(C, "Extraer Texto Documento", "Filter Documento OK")
+    conectar(C, "Filter Documento OK", "Guardar Instrucciones")
     conectar(C, "Cada 2 horas", "Limpiar Tablas")
     conectar(C, "Hojas", "Leer Hoja")
     conectar(C, "Leer Hoja", "Procesar Planilla")
@@ -878,7 +939,6 @@ def wf_setup_db():
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--nombre-agente", default="Sofía")
     ap.add_argument("--id-oferta", default="")
     ap.add_argument("--id-info", default="")
     ap.add_argument("--id-derivar", default="")
@@ -887,7 +947,6 @@ def main():
     prompt = (RAIZ / "prompts" / "agente-itvm.md").read_text(encoding="utf-8").strip()
     if "{{" in prompt or "}}" in prompt:
         raise SystemExit("El prompt no puede contener '{{' ni '}}' (n8n lo interpretaria como expresion).")
-    prompt = prompt.replace("__NOMBRE_AGENTE__", a.nombre_agente)
 
     ids = {"oferta": a.id_oferta, "info": a.id_info, "derivar": a.id_derivar}
     SALIDA.mkdir(exist_ok=True)

@@ -3,7 +3,13 @@
 Asesora virtual de admisiones para **ITVM, Instituto Técnico VM** ([itvm.cr](https://itvm.cr), La Uruca, San José, Costa Rica). Atiende por WhatsApp a través de Kommo y hace cuatro cosas:
 - orienta sobre las carreras técnicas y los cursos libres;
 - revisa si la persona cumple los requisitos;
-- responde sobre precios, horarios y financiamiento, a partir de la planilla que mantiene ITVM;
+- responde sobre precios, horarios y financiamiento.
+
+Lo que sabe y cómo se comporta lo mantienen los vendedores de ITVM en **dos archivos de Google Drive**, sin tocar n8n:
+- **Planilla** (Google Sheets): programas, precios, horarios, promociones, preguntas frecuentes y datos de contacto.
+- **Documento** (Google Docs): nombre del asistente, cómo se presenta, tono, qué tiene que hacer, cuándo derivar e información extra (proceso de matrícula, políticas, becas).
+
+Además:
 - **deriva a un asesor humano** cuando la persona quiere matricularse.
 
 La estructura sale del agente "Andrea" (Tienda de Sillas), con varias correcciones (ver [Diferencias con Andrea](#diferencias-con-andrea)).
@@ -13,7 +19,8 @@ La estructura sale del agente "Andrea" (Tienda de Sillas), con varias correccion
 ```
 prompts/agente-itvm.md          Prompt del agente (fuente única: se edita acá)
 scripts/generar_workflows.py    Genera los JSON de n8n a partir del prompt
-scripts/generar_planilla.py     Genera la planilla vacía/precargada para ITVM
+scripts/generar_planilla.py     Genera la planilla precargada para ITVM
+scripts/generar_documento.js    Genera el Word de instrucciones para ITVM
 workflows/                      Workflows listos para importar en n8n
   ITVM - Chat Kommo.json                  Principal: webhook → agente → respuesta
   ITVM - Consultar oferta academica.json  Tool: datos de carreras y cursos
@@ -24,6 +31,7 @@ workflows/                      Workflows listos para importar en n8n
 sql/001_esquema.sql             Tablas (prefijo crm.itvm_*)
 sql/002_programas_seed.sql      Oferta académica relevada de itvm.cr (contenido de cada programa)
 docs/ITVM - Planilla asistente virtual.xlsx   Planilla original que se le pasó a ITVM
+docs/ITVM - Instrucciones del asistente.docx  Documento de instrucciones (plantilla)
 ```
 
 ## Flujo
@@ -37,7 +45,9 @@ Kommo (mensaje entrante) ──► Webhook /itvm-kommo
   ► "/reset" → borra memoria
   ► Audio → transcripción · Texto/archivo → contenido
   ► Buffer en Postgres + espera de 8 s → solo el ÚLTIMO mensaje reclama el lote
+  ► Leer Instrucciones (texto del Google Doc, guardado por el sync)
   ► Agente ITVM (gpt-5.4-mini, memoria Postgres de 20 mensajes)
+       reglas fijas (prompts/agente-itvm.md) + instrucciones del negocio (Doc)
        ├─ Consultar oferta academica
        ├─ Consultar informacion adicional
        └─ Derivar a asesor
@@ -83,6 +93,18 @@ El workflow **"ITVM - Sync Planilla"** la lee cada 2 horas, de 6 a 22 h (hora de
 **Protecciones:** si alguna pestaña no se puede leer, o alguien le cambia el nombre (Google devolvería otra pestaña sin avisar), el sync **no pisa** la información anterior. Los programas se emparejan **por nombre exacto**: el contenido detallado (temario, palabras clave) viene del seed y se conserva.
 
 > **No renombrar las pestañas ni los encabezados** (fila 4). Si se cambia el nombre de un programa, se crea como programa nuevo, sin temario, y el viejo se desactiva.
+
+## Documento de instrucciones (Google Docs)
+
+1. Subí `docs/ITVM - Instrucciones del asistente.docx` a Google Drive.
+2. Abrilo con Google Docs → **Archivo → Guardar como Documentos de Google**. Tiene que ser un Documento de Google, no un .docx.
+3. Compartir → **cualquier persona con el enlace puede ver**.
+4. Copiá el ID de la URL (`docs.google.com/document/d/ESTE_ID/edit`) y pegalo en el nodo **Config Sync** del workflow "ITVM - Sync Planilla" (campo `doc_id`).
+
+El sync lo lee cada 2 horas y lo guarda en `crm.itvm_bot_config.instrucciones`. El agente lo recibe en cada mensaje como "INSTRUCCIONES DEL NEGOCIO".
+- Los ejemplos entre paréntesis que no se completaron, como "(Completar)" o "(Ejemplo: …)", se descartan solos.
+- Si el documento no se puede leer, se mantiene la última versión buena.
+- Las **reglas fijas** de `prompts/agente-itvm.md` siempre mandan sobre el documento: no inventar precios, usar las herramientas, no armar links, no pedir datos sensibles.
 
 ## Instalación
 
@@ -135,13 +157,15 @@ Desde un WhatsApp de prueba:
 - **Derivación:** "quiero matricularme" → pide el nombre si falta y deriva. El lead pasa a "LISTO PARA ASESOR (IA)" con la etiqueta, el campo Resumen IA y una nota, y el bot deja de responder.
 - **Reset:** "/reset" → reinicia la memoria. Para volver a probar un lead derivado, quitale la etiqueta `ITVM-derivado`.
 
-## Editar el prompt
+## Editar las reglas fijas del agente
+
+El nombre, el tono y el comportamiento los cambia ITVM en el documento. Las **reglas fijas** (herramientas, no inventar, derivación) están en `prompts/agente-itvm.md`:
 
 1. Editá `prompts/agente-itvm.md`. No uses `{{ }}`: n8n lo interpretaría como una expresión.
 2. Regenerá los workflows:
 
    ```bash
-   python3 scripts/generar_workflows.py --nombre-agente "Sofía" --id-oferta ID1 --id-info ID2 --id-derivar ID3
+   python3 scripts/generar_workflows.py --id-oferta ID1 --id-info ID2 --id-derivar ID3
    ```
 
 3. Reimportá **"ITVM - Chat Kommo"**.
@@ -169,5 +193,5 @@ Para cambios chicos también podés editar el *System Message* directamente en n
 - **Requisito de Vehículos Livianos:** el folleto de 2026 pide *sexto grado*; la web dice *noveno año*. En la planilla está marcado "VERIFICAR".
 - **Semiconductores:** faltan requisitos. **Common Rail:** falta modalidad.
 - **Promoción de ejemplo** ("Matrícula gratis enero"): el sync la ignora, pero conviene borrarla de la planilla.
-- **Nombre del agente:** por defecto "Sofía" (`--nombre-agente`).
+- **Documento de instrucciones:** subirlo a Drive como Documento de Google y pegar su ID en `doc_id` (nodo Config Sync). Mientras no esté, el agente se presenta como "asistente virtual de admisiones de ITVM".
 - **Salesbot sobre el lead:** el envío corre el Salesbot 212896 sobre el **lead** (`entity_type: 2`). Antes de activar, conviene probarlo con un lead de prueba.

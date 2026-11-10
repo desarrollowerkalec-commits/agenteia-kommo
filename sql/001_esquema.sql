@@ -26,13 +26,17 @@ CREATE TABLE IF NOT EXISTS crm.itvm_buffer (
 CREATE INDEX IF NOT EXISTS itvm_buffer_pendientes_idx
   ON crm.itvm_buffer (chat_id, id) WHERE NOT procesado;
 
--- 3) Informacion editable por el equipo (precios, fechas de inicio, horarios, promos).
---    La llena el workflow "ITVM - Sync Documento" desde un Google Doc.
+-- 3) Informacion editable por el equipo de ITVM.
+--    notas_adicionales: planilla (precios, horarios, promos, FAQ). instrucciones: Google Doc.
+--    Las llena el workflow "ITVM - Sync Planilla".
 CREATE TABLE IF NOT EXISTS crm.itvm_bot_config (
   id                 int PRIMARY KEY,
   notas_adicionales  text,
   actualizado_en     timestamptz
 );
+-- Instrucciones del negocio (nombre, tono, que hacer, info extra): vienen del Google Doc de ITVM.
+ALTER TABLE crm.itvm_bot_config ADD COLUMN IF NOT EXISTS instrucciones text;
+ALTER TABLE crm.itvm_bot_config ADD COLUMN IF NOT EXISTS instrucciones_actualizado_en timestamptz;
 INSERT INTO crm.itvm_bot_config (id, notas_adicionales, actualizado_en)
 VALUES (1, NULL, NULL)
 ON CONFLICT (id) DO NOTHING;
